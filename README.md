@@ -113,7 +113,24 @@ native-tls openssl quinn socket2 mio tokio async-std smol async-io`.
 `*-mcp`, `wordcraft-zotero`, the three apps, and anything that depends on `craft-update` or `craft-font-store`.
 **Avoid unless needed:** `deckcraft-engine` and `deckcraft-media` (MPL-2.0 audio decoders, more git sources).
 
-These tables are read from dependency metadata. Nothing was compiled, so they are the plan's starting point, not
+**Who brings the crates the map does not show** (from the `cargo deny` inclusion graphs in `audit/2026-11-12/*-deny-bans.txt`):
+
+- `reqwest`, `hyper` and `h2` enter only the two app crates `wordcraft` and `gridcraft`, as a **build** dependency of
+  the printing crate: `winprint` → `sigstore-verify` → `sigstore-rekor` / `sigstore-tsa` → `reqwest`. So a build of
+  those two apps can reach the network. No "may link" crate is in that graph.
+- `tokio` reaches `deckcraft-pptx` and `deckcraft-pdf` only as a **dev** (test) dependency.
+- `craft-font-store` (linked by `wordcraft-engine`) is upstream's downloader for fonts and language packs. Its
+  messages say downloading is off until the user turns it on; that was read in the source, not tested.
+- `craft-proof` (hyphenation and proofing) is in the WordCraft viewer closure through `wordcraft-layout`. It embeds
+  language data at build time when its data folder is configured; what a viewer build embeds, and under which
+  licences, is open.
+- `deckcraft_engine::render` is a re-export of `deckcraft-render`. For WordCraft the path below the engine exists as
+  public functions (`wordcraft_docx::read`, `wordcraft_docbin::read`, `wordcraft_layout::layout`,
+  `wordcraft_render::render_page`) but has not been built or run by us: the spike's pages came from the released
+  command-line tool, which links `wordcraft-engine`.
+
+Limits: the map counts normal dependencies with default features. These tables are read from dependency metadata.
+Nothing was compiled, so they are the plan's starting point, not
 proof: the proof is `cargo tree` on our own viewer crate once it exists, with `cargo deny check bans` at 0.
 
 ## How an upstream update is reviewed
