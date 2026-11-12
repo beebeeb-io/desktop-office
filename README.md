@@ -1,9 +1,10 @@
 # desktop-office
 
-The office engines behind the Beebeeb desktop app's read-only viewer for Word, Excel and PowerPoint files.
+The office engines behind the Beebeeb desktop app's viewer and editor for Word, Excel and PowerPoint files.
 This repository holds three upstream open-source projects, unchanged, as pinned git subtrees. Our own code (a small
-viewer crate on top) is not here yet; it comes after the viewer contract is merged
-(`docs/superpowers/specs/2026-11-12-native-office-viewer.md` in the desktop repository).
+crate on top, for the viewer first and the editor after it) is not here yet. The two contracts are in the desktop
+repository: `docs/superpowers/specs/2026-11-12-native-office-viewer.md` (merged) and
+`docs/superpowers/specs/2026-11-12-native-office-editor.md` (in review when this line was written).
 
 **Nothing here is built, published or uploaded.** There is no CI in this repository: the workflow files inside the
 three folders are the upstreams' own and do not run from a subfolder.
@@ -27,7 +28,7 @@ flowchart LR
   U1[storytold/wordcraft v0.18.1] -->|git subtree| W[wordcraft/]
   U2[storytold/gridcraft v0.19.1] -->|git subtree| G[gridcraft/]
   U3[storytold/deckcraft v0.18.1] -->|git subtree| D[deckcraft/]
-  W --> V[viewer crate, ours: not here yet]
+  W --> V[viewer and editor crate, ours: not here yet]
   G --> V
   D --> V
   V --> H[the desktop app's sandboxed render helper]
@@ -133,6 +134,31 @@ Limits: the map counts normal dependencies with default features. These tables a
 Nothing was compiled, so they are the plan's starting point, not
 proof: the proof is `cargo tree` on our own viewer crate once it exists, with `cargo deny check bans` at 0.
 
+### What an editor links (measured 2026-11-12, after the tables above)
+
+The editor spike built four throwaway programs from this repository at `da1d639b` on a build machine and ran them
+without a network. Counts are from `cargo tree -e normal` per package for the Windows target, so they are **not
+comparable** with the table above (that one unifies features across each workspace). Evidence: the desktop
+repository, `spikes/2477-office-editor-throwaway/evidence/run-linux.log`.
+
+| What is linked | Packages | Network crates | Git-sourced | With an advisory | Licence outside the allow-list |
+|---|---|---|---|---|---|
+| WordCraft below the engine (model with edit operations, readers, `.docx` writer, layout, render) | 133 | 0 | 1 | 1 (`zip`) | 0 |
+| `wordcraft-engine` as it is here (commands, undo, redo) | 210 | **2** (`ureq`, `rustls`) | 6 | 1 | 1 (`webpki-roots`) |
+| `wordcraft-engine` with the font store compiled out (a patch that is **not** on `main`) | 171 | 0 | 3 | 1 | 0 |
+| `gridcraft-engine` | 92 | 0 | 0 | 1 | 0 |
+| `deckcraft-engine` | 171 | 0 | 5 | 3 | 16 (`symphonia`, MPL-2.0) |
+| DeckCraft below the engine (model, `.pptx` reader and writer, render) | 98 | 0 | 1 | 1 | 0 |
+
+- Undo and redo exist only in the engine crates. For WordCraft that means either a small change of ours inside the
+  subtree (it makes the font store an optional feature) or editing below the engine with our own history. Which one
+  is the owner's decision; until then `main` holds upstream unchanged and "must not link `wordcraft-engine`" stands.
+- An earlier line in this file says the WordCraft path below the engine "has not been built or run by us". It has
+  now: the spike opened, edited, saved and reopened 12 of 12 Word files through it.
+- The engines can write files and start other programs on their own (`wordcraft-engine`: options, templates, fonts,
+  speech; `deckcraft-engine`: recovery files). An editor runs them in a sandbox that allows neither; that is in the
+  editor contract, not enforced by anything in this repository.
+
 ## How an upstream update is reviewed
 
 The upstreams are about five weeks old, release almost daily and have about 100 contributors each. A pin never moves
@@ -152,9 +178,10 @@ by itself.
 
 ## Not done
 
-- Nothing is compiled or tested here. No viewer crate, no CI.
+- No crate of ours, no CI. The only builds from this repository so far are the editor spike's throwaway programs
+  (above); nothing built from here is published.
 - The audit was run on fresh clones of the three upstream tags, not on this repository's checkout; the trees are
   identical (first table), so the lockfiles are the same files.
 - `main` is not branch-protected yet.
-- Whether this repository becomes public is the owner's decision. It must be public before a public branch of the
-  desktop app depends on it.
+- This repository was made public on 2026-11-12 by the owner's decision (an earlier version of this line said the
+  decision was open).
