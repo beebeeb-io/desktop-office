@@ -1,0 +1,502 @@
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+   ┌─ wordcraft/Cargo.lock:99:20
+   │
+99 │ craft-atomic 0.1.0 git+https://github.com/storytold/craft-libs?rev=762a06a4c6b48b522b7d4de84a87917ef90265e6
+   │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+   │
+   ├ craft-atomic v0.1.0
+     └── craft-font-store v0.1.0
+         └── wordcraft-engine v0.18.1
+             ├── wordcraft v0.18.1
+             ├── wordcraft-cli v0.18.1
+             ├── wordcraft-mcp v0.18.1
+             │   └── wordcraft-cli v0.18.1 (*)
+             ├── wordcraft-ui-egui v0.18.1
+             │   ├── wordcraft v0.18.1 (*)
+             │   └── wordcraft-web v0.18.1
+             ├── wordcraft-web v0.18.1 (*)
+             └── wordcraft-zotero v0.18.1
+                 ├── wordcraft-cli v0.18.1 (*)
+                 └── wordcraft-ui-egui v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:100:26
+    │
+100 │ craft-font-catalog 0.1.0 git+https://github.com/storytold/craft-libs?rev=762a06a4c6b48b522b7d4de84a87917ef90265e6
+    │                          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-font-catalog v0.1.0
+      ├── craft-font-store v0.1.0
+      │   └── wordcraft-engine v0.18.1
+      │       ├── wordcraft v0.18.1
+      │       ├── wordcraft-cli v0.18.1
+      │       ├── wordcraft-mcp v0.18.1
+      │       │   └── wordcraft-cli v0.18.1 (*)
+      │       ├── wordcraft-ui-egui v0.18.1
+      │       │   ├── wordcraft v0.18.1 (*)
+      │       │   └── wordcraft-web v0.18.1
+      │       ├── wordcraft-web v0.18.1 (*)
+      │       └── wordcraft-zotero v0.18.1
+      │           ├── wordcraft-cli v0.18.1 (*)
+      │           └── wordcraft-ui-egui v0.18.1 (*)
+      └── wordcraft-engine v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:101:24
+    │
+101 │ craft-font-store 0.1.0 git+https://github.com/storytold/craft-libs?rev=762a06a4c6b48b522b7d4de84a87917ef90265e6
+    │                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-font-store v0.1.0
+      └── wordcraft-engine v0.18.1
+          ├── wordcraft v0.18.1
+          ├── wordcraft-cli v0.18.1
+          ├── wordcraft-mcp v0.18.1
+          │   └── wordcraft-cli v0.18.1 (*)
+          ├── wordcraft-ui-egui v0.18.1
+          │   ├── wordcraft v0.18.1 (*)
+          │   └── wordcraft-web v0.18.1
+          ├── wordcraft-web v0.18.1 (*)
+          └── wordcraft-zotero v0.18.1
+              ├── wordcraft-cli v0.18.1 (*)
+              └── wordcraft-ui-egui v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:102:25
+    │
+102 │ craft-fonts-build 0.1.0 git+https://github.com/storytold/craft-libs?rev=92d392cff132eaf53e13afff77f38b5c11b73aa0
+    │                         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-fonts-build v0.1.0
+      └── craft-ui v0.1.0
+          └── wordcraft-ui-egui v0.18.1
+              ├── wordcraft v0.18.1
+              └── wordcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:103:18
+    │
+103 │ craft-i18n 0.1.0 git+https://github.com/storytold/craft-libs?rev=92d392cff132eaf53e13afff77f38b5c11b73aa0
+    │                  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-i18n v0.1.0
+      ├── craft-ui v0.1.0
+      │   └── wordcraft-ui-egui v0.18.1
+      │       ├── wordcraft v0.18.1
+      │       └── wordcraft-web v0.18.1
+      └── wordcraft-ui-egui v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:104:17
+    │
+104 │ craft-pdf 0.1.0 git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b
+    │                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-pdf v0.1.0
+      └── wordcraft-pdf v0.18.1
+          └── wordcraft-engine v0.18.1
+              ├── wordcraft v0.18.1
+              ├── wordcraft-cli v0.18.1
+              ├── wordcraft-mcp v0.18.1
+              │   └── wordcraft-cli v0.18.1 (*)
+              ├── wordcraft-ui-egui v0.18.1
+              │   ├── wordcraft v0.18.1 (*)
+              │   └── wordcraft-web v0.18.1
+              ├── wordcraft-web v0.18.1 (*)
+              └── wordcraft-zotero v0.18.1
+                  ├── wordcraft-cli v0.18.1 (*)
+                  └── wordcraft-ui-egui v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:105:19
+    │
+105 │ craft-print 0.1.0 git+https://github.com/storytold/craft-libs?rev=a3e0b5a9440d18f19422a9dca13516747b7d3181
+    │                   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-print v0.1.0
+      └── wordcraft v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:106:19
+    │
+106 │ craft-proof 0.1.0 git+https://github.com/storytold/craft-libs?rev=01315d9c92b5b0e69082d35ca56099461a1efd45
+    │                   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-proof v0.1.0
+      ├── wordcraft v0.18.1
+      ├── wordcraft-engine v0.18.1
+      │   ├── wordcraft v0.18.1 (*)
+      │   ├── wordcraft-cli v0.18.1
+      │   ├── wordcraft-mcp v0.18.1
+      │   │   └── wordcraft-cli v0.18.1 (*)
+      │   ├── wordcraft-ui-egui v0.18.1
+      │   │   ├── wordcraft v0.18.1 (*)
+      │   │   └── wordcraft-web v0.18.1
+      │   ├── wordcraft-web v0.18.1 (*)
+      │   └── wordcraft-zotero v0.18.1
+      │       ├── wordcraft-cli v0.18.1 (*)
+      │       └── wordcraft-ui-egui v0.18.1 (*)
+      └── wordcraft-layout v0.18.1
+          ├── wordcraft-engine v0.18.1 (*)
+          ├── wordcraft-pdf v0.18.1
+          │   └── wordcraft-engine v0.18.1 (*)
+          ├── wordcraft-render v0.18.1
+          │   ├── wordcraft-cli v0.18.1 (*)
+          │   ├── wordcraft-engine v0.18.1 (*)
+          │   ├── wordcraft-mcp v0.18.1 (*)
+          │   └── wordcraft-ui-egui v0.18.1 (*)
+          └── wordcraft-ui-egui v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:107:16
+    │
+107 │ craft-ui 0.1.0 git+https://github.com/storytold/craft-libs?rev=92d392cff132eaf53e13afff77f38b5c11b73aa0
+    │                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-ui v0.1.0
+      └── wordcraft-ui-egui v0.18.1
+          ├── wordcraft v0.18.1
+          └── wordcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:108:20
+    │
+108 │ craft-update 0.1.0 git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-update v0.1.0
+      ├── wordcraft v0.18.1
+      └── wordcraft-ui-egui v0.18.1
+          ├── wordcraft v0.18.1 (*)
+          └── wordcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:109:21
+    │
+109 │ craft-web-api 0.1.0 git+https://github.com/storytold/craft-libs?rev=fd5e2feff6ea25bed371a99cc732b3968d621505
+    │                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-web-api v0.1.0
+      └── wordcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:110:22
+    │
+110 │ craft-web-host 0.1.0 git+https://github.com/storytold/craft-libs?rev=fd5e2feff6ea25bed371a99cc732b3968d621505
+    │                      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-web-host v0.1.0
+      └── wordcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:111:20
+    │
+111 │ craft-window 0.1.0 git+https://github.com/storytold/craft-libs?rev=92d392cff132eaf53e13afff77f38b5c11b73aa0
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-window v0.1.0
+      └── wordcraft-ui-egui v0.18.1
+          ├── wordcraft v0.18.1
+          └── wordcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:112:26
+    │
+112 │ craft-winprint-gdi 0.1.0 git+https://github.com/storytold/winprint.rs?rev=417ac3c4d14d3da5485a99c7d5ce8f05664ec312
+    │                          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ craft-winprint-gdi v0.1.0
+      └── craft-print v0.1.0
+          └── wordcraft v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:139:15
+    │
+139 │ ecolor 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ ecolor v0.37.0
+      └── epaint v0.37.0
+          ├── craft-ui v0.1.0
+          │   └── wordcraft-ui-egui v0.18.1
+          │       ├── wordcraft v0.18.1
+          │       └── wordcraft-web v0.18.1
+          ├── egui v0.37.0
+          │   ├── craft-ui v0.1.0 (*)
+          │   ├── craft-update v0.1.0
+          │   │   ├── wordcraft v0.18.1 (*)
+          │   │   └── wordcraft-ui-egui v0.18.1 (*)
+          │   ├── craft-window v0.1.0
+          │   │   └── wordcraft-ui-egui v0.18.1 (*)
+          │   ├── eframe v0.37.0
+          │   │   ├── wordcraft v0.18.1 (*)
+          │   │   └── wordcraft-web v0.18.1 (*)
+          │   ├── egui-wgpu v0.37.0
+          │   │   ├── eframe v0.37.0 (*)
+          │   │   └── egui_kittest v0.37.0
+          │   │       └── (dev) wordcraft-ui-egui v0.18.1 (*)
+          │   ├── egui-winit v0.37.0
+          │   │   └── eframe v0.37.0 (*)
+          │   ├── egui_extras v0.37.0
+          │   │   └── wordcraft-ui-egui v0.18.1 (*)
+          │   ├── egui_kittest v0.37.0 (*)
+          │   ├── wordcraft v0.18.1 (*)
+          │   ├── (dev) wordcraft-ui-egui v0.18.1 (*)
+          │   └── wordcraft-web v0.18.1 (*)
+          └── egui-wgpu v0.37.0 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:140:15
+    │
+140 │ eframe 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ eframe v0.37.0
+      ├── wordcraft v0.18.1
+      └── wordcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:141:13
+    │
+141 │ egui 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ egui v0.37.0
+      ├── craft-ui v0.1.0
+      │   └── wordcraft-ui-egui v0.18.1
+      │       ├── wordcraft v0.18.1
+      │       └── wordcraft-web v0.18.1
+      ├── craft-update v0.1.0
+      │   ├── wordcraft v0.18.1 (*)
+      │   └── wordcraft-ui-egui v0.18.1 (*)
+      ├── craft-window v0.1.0
+      │   └── wordcraft-ui-egui v0.18.1 (*)
+      ├── eframe v0.37.0
+      │   ├── wordcraft v0.18.1 (*)
+      │   └── wordcraft-web v0.18.1 (*)
+      ├── egui-wgpu v0.37.0
+      │   ├── eframe v0.37.0 (*)
+      │   └── egui_kittest v0.37.0
+      │       └── (dev) wordcraft-ui-egui v0.18.1 (*)
+      ├── egui-winit v0.37.0
+      │   └── eframe v0.37.0 (*)
+      ├── egui_extras v0.37.0
+      │   └── wordcraft-ui-egui v0.18.1 (*)
+      ├── egui_kittest v0.37.0 (*)
+      ├── wordcraft v0.18.1 (*)
+      ├── (dev) wordcraft-ui-egui v0.18.1 (*)
+      └── wordcraft-web v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:142:18
+    │
+142 │ egui-wgpu 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │                  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ egui-wgpu v0.37.0
+      ├── eframe v0.37.0
+      │   ├── wordcraft v0.18.1
+      │   └── wordcraft-web v0.18.1
+      └── egui_kittest v0.37.0
+          └── (dev) wordcraft-ui-egui v0.18.1
+              ├── wordcraft v0.18.1 (*)
+              └── wordcraft-web v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:143:19
+    │
+143 │ egui-winit 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │                   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ egui-winit v0.37.0
+      └── eframe v0.37.0
+          ├── wordcraft v0.18.1
+          └── wordcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:144:20
+    │
+144 │ egui_extras 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ egui_extras v0.37.0
+      └── wordcraft-ui-egui v0.18.1
+          ├── wordcraft v0.18.1
+          └── wordcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:145:21
+    │
+145 │ egui_kittest 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ egui_kittest v0.37.0
+      └── (dev) wordcraft-ui-egui v0.18.1
+          ├── wordcraft v0.18.1
+          └── wordcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:147:14
+    │
+147 │ emath 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ emath v0.37.0
+      ├── ecolor v0.37.0
+      │   └── epaint v0.37.0
+      │       ├── craft-ui v0.1.0
+      │       │   └── wordcraft-ui-egui v0.18.1
+      │       │       ├── wordcraft v0.18.1
+      │       │       └── wordcraft-web v0.18.1
+      │       ├── egui v0.37.0
+      │       │   ├── craft-ui v0.1.0 (*)
+      │       │   ├── craft-update v0.1.0
+      │       │   │   ├── wordcraft v0.18.1 (*)
+      │       │   │   └── wordcraft-ui-egui v0.18.1 (*)
+      │       │   ├── craft-window v0.1.0
+      │       │   │   └── wordcraft-ui-egui v0.18.1 (*)
+      │       │   ├── eframe v0.37.0
+      │       │   │   ├── wordcraft v0.18.1 (*)
+      │       │   │   └── wordcraft-web v0.18.1 (*)
+      │       │   ├── egui-wgpu v0.37.0
+      │       │   │   ├── eframe v0.37.0 (*)
+      │       │   │   └── egui_kittest v0.37.0
+      │       │   │       └── (dev) wordcraft-ui-egui v0.18.1 (*)
+      │       │   ├── egui-winit v0.37.0
+      │       │   │   └── eframe v0.37.0 (*)
+      │       │   ├── egui_extras v0.37.0
+      │       │   │   └── wordcraft-ui-egui v0.18.1 (*)
+      │       │   ├── egui_kittest v0.37.0 (*)
+      │       │   ├── wordcraft v0.18.1 (*)
+      │       │   ├── (dev) wordcraft-ui-egui v0.18.1 (*)
+      │       │   └── wordcraft-web v0.18.1 (*)
+      │       └── egui-wgpu v0.37.0 (*)
+      ├── egui v0.37.0 (*)
+      └── epaint v0.37.0 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:154:15
+    │
+154 │ epaint 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ epaint v0.37.0
+      ├── craft-ui v0.1.0
+      │   └── wordcraft-ui-egui v0.18.1
+      │       ├── wordcraft v0.18.1
+      │       └── wordcraft-web v0.18.1
+      ├── egui v0.37.0
+      │   ├── craft-ui v0.1.0 (*)
+      │   ├── craft-update v0.1.0
+      │   │   ├── wordcraft v0.18.1 (*)
+      │   │   └── wordcraft-ui-egui v0.18.1 (*)
+      │   ├── craft-window v0.1.0
+      │   │   └── wordcraft-ui-egui v0.18.1 (*)
+      │   ├── eframe v0.37.0
+      │   │   ├── wordcraft v0.18.1 (*)
+      │   │   └── wordcraft-web v0.18.1 (*)
+      │   ├── egui-wgpu v0.37.0
+      │   │   ├── eframe v0.37.0 (*)
+      │   │   └── egui_kittest v0.37.0
+      │   │       └── (dev) wordcraft-ui-egui v0.18.1 (*)
+      │   ├── egui-winit v0.37.0
+      │   │   └── eframe v0.37.0 (*)
+      │   ├── egui_extras v0.37.0
+      │   │   └── wordcraft-ui-egui v0.18.1 (*)
+      │   ├── egui_kittest v0.37.0 (*)
+      │   ├── wordcraft v0.18.1 (*)
+      │   ├── (dev) wordcraft-ui-egui v0.18.1 (*)
+      │   └── wordcraft-web v0.18.1 (*)
+      └── egui-wgpu v0.37.0 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:155:29
+    │
+155 │ epaint_default_fonts 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │                             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ epaint_default_fonts v0.37.0
+      └── epaint v0.37.0
+          ├── craft-ui v0.1.0
+          │   └── wordcraft-ui-egui v0.18.1
+          │       ├── wordcraft v0.18.1
+          │       └── wordcraft-web v0.18.1
+          ├── egui v0.37.0
+          │   ├── craft-ui v0.1.0 (*)
+          │   ├── craft-update v0.1.0
+          │   │   ├── wordcraft v0.18.1 (*)
+          │   │   └── wordcraft-ui-egui v0.18.1 (*)
+          │   ├── craft-window v0.1.0
+          │   │   └── wordcraft-ui-egui v0.18.1 (*)
+          │   ├── eframe v0.37.0
+          │   │   ├── wordcraft v0.18.1 (*)
+          │   │   └── wordcraft-web v0.18.1 (*)
+          │   ├── egui-wgpu v0.37.0
+          │   │   ├── eframe v0.37.0 (*)
+          │   │   └── egui_kittest v0.37.0
+          │   │       └── (dev) wordcraft-ui-egui v0.18.1 (*)
+          │   ├── egui-winit v0.37.0
+          │   │   └── eframe v0.37.0 (*)
+          │   ├── egui_extras v0.37.0
+          │   │   └── wordcraft-ui-egui v0.18.1 (*)
+          │   ├── egui_kittest v0.37.0 (*)
+          │   ├── wordcraft v0.18.1 (*)
+          │   ├── (dev) wordcraft-ui-egui v0.18.1 (*)
+          │   └── wordcraft-web v0.18.1 (*)
+          └── egui-wgpu v0.37.0 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:273:14
+    │
+273 │ krilla 0.8.2 git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b
+    │              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ krilla v0.8.2
+      └── craft-pdf v0.1.0
+          └── wordcraft-pdf v0.18.1
+              └── wordcraft-engine v0.18.1
+                  ├── wordcraft v0.18.1
+                  ├── wordcraft-cli v0.18.1
+                  ├── wordcraft-mcp v0.18.1
+                  │   └── wordcraft-cli v0.18.1 (*)
+                  ├── wordcraft-ui-egui v0.18.1
+                  │   ├── wordcraft v0.18.1 (*)
+                  │   └── wordcraft-web v0.18.1
+                  ├── wordcraft-web v0.18.1 (*)
+                  └── wordcraft-zotero v0.18.1
+                      ├── wordcraft-cli v0.18.1 (*)
+                      └── wordcraft-ui-egui v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:605:15
+    │
+605 │ winit 0.30.13 git+https://github.com/storytold/winit.git?rev=a517b3846ee8457d84ee4975110bfda6797c44dc
+    │               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ winit v0.30.13
+      ├── accesskit_winit v0.34.1
+      │   └── egui-winit v0.37.0
+      │       └── eframe v0.37.0
+      │           ├── wordcraft v0.18.1
+      │           └── wordcraft-web v0.18.1
+      ├── eframe v0.37.0 (*)
+      ├── egui-wgpu v0.37.0
+      │   ├── eframe v0.37.0 (*)
+      │   └── egui_kittest v0.37.0
+      │       └── (dev) wordcraft-ui-egui v0.18.1
+      │           ├── wordcraft v0.18.1 (*)
+      │           └── wordcraft-web v0.18.1 (*)
+      ├── egui-winit v0.37.0 (*)
+      └── wordcraft v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ wordcraft/Cargo.lock:607:16
+    │
+607 │ winprint 0.2.1 git+https://github.com/storytold/winprint.rs?rev=5f80b9baf6b58937c401656634e42d33f00ddf49
+    │                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ winprint v0.2.1
+      └── craft-print v0.1.0
+          └── wordcraft v0.18.1
+
+sources FAILED

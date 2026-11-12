@@ -1,0 +1,419 @@
+error[unmaintained]: proc-macro-error is unmaintained
+    ┌─ gridcraft/Cargo.lock:351:1
+    │
+351 │ proc-macro-error 1.0.4 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2024-0370
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2024-0370
+    ├ proc-macro-error's maintainer seems to be unreachable, with no commits for 2 years, no releases pushed for 4 years, and no activity on the GitLab repo or response to email.
+      
+      proc-macro-error also depends on `syn 1.x`, which may be bringing duplicate dependencies into dependant build trees.
+      
+      ## Possible Alternative(s)
+      
+      - [manyhow](https://crates.io/crates/manyhow)
+      - [proc-macro2-diagnostics](https://github.com/SergioBenitez/proc-macro2-diagnostics)
+    ├ Announcement: https://gitlab.com/CreepySkeleton/proc-macro-error/-/issues/20
+    ├ Solution: No safe upgrade is available!
+    ├ proc-macro-error v1.0.4
+      └── fmt-derive-proc v0.1.2
+          └── fmt-derive v0.1.2
+              └── winprint v0.2.1
+                  └── craft-print v0.1.0
+                      └── gridcraft v0.19.1
+
+error[vulnerability]: Bundled root certificates allow trust in distrusted emSign intermediates
+    ┌─ gridcraft/Cargo.lock:544:1
+    │
+544 │ webpki-root-certs 1.0.9 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0383
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0383
+    ├ Affected versions include `emSign ECC Root CA - G3`, which can allow certificate
+      paths through distrusted emSign intermediates.
+      
+      Affected versions may accept certificate paths containing distrusted emSign
+      intermediate public keys. The private keys corresponding to these intermediates
+      are now well known.
+      
+      Version 1.0.10+ removes this root.
+      
+      Version 0.26.11 is a compatibility wrapper that re-exports
+      `parent::TLS_SERVER_ROOT_CERTS` from its `webpki-root-certs` 1.x dependency; it
+      contains no separate root certificate list. Its resolved 1.x dependency must be
+      updated to 1.0.10 or later.
+    ├ Announcement: https://github.com/rustls/webpki-roots/pull/133
+    ├ Solution: Upgrade to >=1.0.10 (try `cargo update -p webpki-root-certs`)
+    ├ webpki-root-certs v1.0.9
+      └── rustls-platform-verifier v0.7.1
+          ├── reqwest v0.13.5
+          │   ├── sigstore-rekor v0.6.6
+          │   │   ├── sigstore-bundle v0.6.6
+          │   │   │   └── sigstore-verify v0.6.6
+          │   │   │       └── (build) winprint v0.2.1
+          │   │   │           └── craft-print v0.1.0
+          │   │   │               └── gridcraft v0.19.1
+          │   │   └── sigstore-verify v0.6.6 (*)
+          │   ├── sigstore-tsa v0.6.6
+          │   │   ├── sigstore-bundle v0.6.6 (*)
+          │   │   └── sigstore-verify v0.6.6 (*)
+          │   └── (build) winprint v0.2.1 (*)
+          └── ureq v3.5.0
+              └── craft-update v0.1.0
+                  ├── gridcraft v0.19.1 (*)
+                  └── gridcraft-ui-egui v0.19.1
+                      ├── gridcraft v0.19.1 (*)
+                      └── gridcraft-web v0.19.1
+
+error[unmaintained]: `zbus_names` is unmaintained
+    ┌─ gridcraft/Cargo.lock:608:1
+    │
+608 │ zbus_names 4.3.4 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2026-0371
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0371
+    ├ The `zbus_names` crate is no longer maintained as a standalone crate.
+      
+      It has been merged into [`zbus`](https://crates.io/crates/zbus) starting with version `6.0.0`, as its `names` module.
+      
+      Users should migrate to [`zbus`](https://crates.io/crates/zbus), with its default features disabled if they only need the D-Bus name types.
+    ├ Announcement: https://github.com/z-galaxy/zbus/issues/2043
+    ├ Solution: No safe upgrade is available!
+    ├ zbus_names v4.3.4
+      ├── atspi-common v0.13.0
+      │   ├── accesskit_atspi_common v0.21.0
+      │   │   └── accesskit_unix v0.24.0
+      │   │       └── accesskit_winit v0.34.1
+      │   │           └── egui-winit v0.37.0
+      │   │               └── eframe v0.37.0
+      │   │                   ├── gridcraft v0.19.1
+      │   │                   └── gridcraft-web v0.19.1
+      │   ├── atspi v0.29.0
+      │   │   └── accesskit_unix v0.24.0 (*)
+      │   └── atspi-proxies v0.13.0
+      │       └── atspi v0.29.0 (*)
+      ├── zbus v5.19.0
+      │   ├── accesskit_unix v0.24.0 (*)
+      │   ├── atspi-common v0.13.0 (*)
+      │   ├── atspi-proxies v0.13.0 (*)
+      │   └── gridcraft-ui-egui v0.19.1
+      │       ├── gridcraft v0.19.1 (*)
+      │       └── gridcraft-web v0.19.1 (*)
+      ├── zbus_macros v5.19.0
+      │   └── zbus v5.19.0 (*)
+      └── zbus_xml v5.2.1
+          ├── zbus-lockstep v0.5.2
+          │   ├── atspi-common v0.13.0 (*)
+          │   └── zbus-lockstep-macros v0.5.2
+          │       └── atspi-common v0.13.0 (*)
+          └── zbus-lockstep-macros v0.5.2 (*)
+
+error[vulnerability]:  Insecure Preservation of SUID/SGID Bits during ZIP Extraction Leading to Potential Privilege Escalation
+    ┌─ gridcraft/Cargo.lock:620:1
+    │
+620 │ zip 3.0.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0367
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0367
+    ├ The `zip` crate preserves privileged Unix permission bits (SUID, SGID, and sticky bits) from ZIP `external_attributes` during extraction, instead of masking them to safe permission bits. If a privileged process (for example, `root` in an installer, CI/CD pipeline, or container build) extracts an attacker-controlled ZIP archive using `ZipArchive::extract()` or the stream extraction API, files can be created as setuid-root or setgid. This behavior allows the creation of SUID/SGID files during extraction, which can lead to local privilege escalation depending on the execution environment.
+      
+      For further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-vv5m-jxxh-4627
+    ├ Solution: Upgrade to >=9.0.0 (try `cargo update -p zip`)
+    ├ zip v3.0.0
+      ├── gridcraft-cli v0.19.1
+      ├── (dev) gridcraft-engine v0.19.1
+      │   ├── gridcraft v0.19.1
+      │   ├── gridcraft-cli v0.19.1 (*)
+      │   ├── gridcraft-mcp v0.19.1
+      │   │   ├── gridcraft v0.19.1 (*)
+      │   │   └── gridcraft-cli v0.19.1 (*)
+      │   ├── gridcraft-ui-egui v0.19.1
+      │   │   ├── gridcraft v0.19.1 (*)
+      │   │   └── gridcraft-web v0.19.1
+      │   ├── gridcraft-web v0.19.1 (*)
+      │   └── xtask v0.19.1
+      └── gridcraft-xlsx v0.19.1
+          ├── gridcraft-engine v0.19.1 (*)
+          └── (dev) gridcraft-ui-egui v0.19.1 (*)
+
+error[vulnerability]: zip: `ZipArchive::extract` creates symbolic links whose attacker-controlled targets are outside the destination directory
+    ┌─ gridcraft/Cargo.lock:620:1
+    │
+620 │ zip 3.0.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0368
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0368
+    ├ In `zip` 9.0.0-pre2, `ZipArchive::extract` creates a symbolic link from an archive entry after validating only the output entry path. The link target bytes are passed directly to the platform symlink API, so a malicious archive can create an entry inside the destination that resolves to an attacker-chosen path outside it. This behavior was verified on macOS and Linux. On either platform, a subsequent application read or write through that extracted entry accesses the external target with the extracting process's permissions.
+      
+      For further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-4v9h-p7m9-rh26
+    ├ Solution: Upgrade to >=9.0.0 (try `cargo update -p zip`)
+    ├ zip v3.0.0
+      ├── gridcraft-cli v0.19.1
+      ├── (dev) gridcraft-engine v0.19.1
+      │   ├── gridcraft v0.19.1
+      │   ├── gridcraft-cli v0.19.1 (*)
+      │   ├── gridcraft-mcp v0.19.1
+      │   │   ├── gridcraft v0.19.1 (*)
+      │   │   └── gridcraft-cli v0.19.1 (*)
+      │   ├── gridcraft-ui-egui v0.19.1
+      │   │   ├── gridcraft v0.19.1 (*)
+      │   │   └── gridcraft-web v0.19.1
+      │   ├── gridcraft-web v0.19.1 (*)
+      │   └── xtask v0.19.1
+      └── gridcraft-xlsx v0.19.1
+          ├── gridcraft-engine v0.19.1 (*)
+          └── (dev) gridcraft-ui-egui v0.19.1 (*)
+
+error[vulnerability]: ZipStreamReader::extract() and ZipArchive::extract() apply Unix permissions through symlinks without confining the target
+    ┌─ gridcraft/Cargo.lock:620:1
+    │
+620 │ zip 3.0.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0369
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0369
+    ├ `ZipStreamReader::extract()` applies Unix permissions through extracted symlinks without validating the symlink target stays within the destination
+      
+      For further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-4684-h2q9-2vcp
+    ├ Solution: Upgrade to >=9.0.0 (try `cargo update -p zip`)
+    ├ zip v3.0.0
+      ├── gridcraft-cli v0.19.1
+      ├── (dev) gridcraft-engine v0.19.1
+      │   ├── gridcraft v0.19.1
+      │   ├── gridcraft-cli v0.19.1 (*)
+      │   ├── gridcraft-mcp v0.19.1
+      │   │   ├── gridcraft v0.19.1 (*)
+      │   │   └── gridcraft-cli v0.19.1 (*)
+      │   ├── gridcraft-ui-egui v0.19.1
+      │   │   ├── gridcraft v0.19.1 (*)
+      │   │   └── gridcraft-web v0.19.1
+      │   ├── gridcraft-web v0.19.1 (*)
+      │   └── xtask v0.19.1
+      └── gridcraft-xlsx v0.19.1
+          ├── gridcraft-engine v0.19.1 (*)
+          └── (dev) gridcraft-ui-egui v0.19.1 (*)
+
+error[vulnerability]: zip: `ZipArchive::extract` aborts the process on a symlink entry with a large declared size
+    ┌─ gridcraft/Cargo.lock:620:1
+    │
+620 │ zip 3.0.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0429
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0429
+    ├ `ZipArchive::extract()` sizes the symlink-target buffer from the uncompressed
+      size declared in the central directory record, before reading a single byte of
+      entry data:
+      
+      ```rust
+      let mut target = Vec::with_capacity(file.size() as usize);
+      ```
+      
+      Both inputs are attacker-controlled. `ZipFile::size()` returns
+      `uncompressed_size` verbatim from the central directory, widened to a full `u64`
+      by a ZIP64 extended-information extra field, and is never cross-checked against
+      the compressed size, the remaining archive length, or any platform-appropriate
+      bound for a symlink target. `ZipFile::is_symlink()` is decided entirely by the
+      `S_IFLNK` bit of the external-attributes field.
+      
+      `Vec::with_capacity()` is infallible: when the reservation is refused it calls
+      `handle_alloc_error()` and aborts the process. This is not a Rust panic. It is
+      not caught by `catch_unwind()`, is unaffected by `panic = "unwind"`, and is not
+      contained by running the call on a worker thread.
+      
+      A 112-byte archive is sufficient. One `Stored` entry flagged `S_IFLNK` with a
+      ZIP64 field declaring `uncompressed_size = 2^62` and a zero-byte payload makes
+      `extract()` fail with:
+      
+      ```
+      memory allocation of 4611686018427387904 bytes failed
+      Aborted (core dumped)          # exit 134
+      ```
+      
+      The declared value only needs to exceed the host's address space, not its RAM:
+      `Vec::with_capacity()` maps address space without touching pages, so resident
+      memory stays flat and the abort happens on the refused reservation itself. Under
+      a `ulimit -v` cap or a memory-constrained container the threshold drops far
+      enough that a plain 32-bit `uncompressed_size` with no ZIP64 field suffices.
+      
+      Applications that extract archives from untrusted input are affected on Unix and
+      Windows targets with default features and no special configuration: upload
+      handling, mail-attachment processing, package and artefact ingestion, backup
+      restore and container-image layer extraction. No confidentiality or integrity
+      property is affected: there is no memory unsafety, no out-of-bounds access, no
+      disclosure and no data corruption.
+      
+      The fix landed in [zip-rs/zip2#984](https://github.com/zip-rs/zip2/pull/984) and
+      shipped in 9.0.0.
+      
+      For further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-q7v9-x93c-xqv3
+    ├ Solution: Upgrade to >=9.0.0 (try `cargo update -p zip`)
+    ├ zip v3.0.0
+      ├── gridcraft-cli v0.19.1
+      ├── (dev) gridcraft-engine v0.19.1
+      │   ├── gridcraft v0.19.1
+      │   ├── gridcraft-cli v0.19.1 (*)
+      │   ├── gridcraft-mcp v0.19.1
+      │   │   ├── gridcraft v0.19.1 (*)
+      │   │   └── gridcraft-cli v0.19.1 (*)
+      │   ├── gridcraft-ui-egui v0.19.1
+      │   │   ├── gridcraft v0.19.1 (*)
+      │   │   └── gridcraft-web v0.19.1
+      │   ├── gridcraft-web v0.19.1 (*)
+      │   └── xtask v0.19.1
+      └── gridcraft-xlsx v0.19.1
+          ├── gridcraft-engine v0.19.1 (*)
+          └── (dev) gridcraft-ui-egui v0.19.1 (*)
+
+error[unmaintained]: `zvariant` is unmaintained
+    ┌─ gridcraft/Cargo.lock:627:1
+    │
+627 │ zvariant 5.15.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2026-0370
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0370
+    ├ The `zvariant` crate is no longer maintained as a standalone crate.
+      
+      It has been merged into [`zbus`](https://crates.io/crates/zbus) starting with version `6.0.0`, as its `wire` module.
+      
+      Users should migrate to [`zbus`](https://crates.io/crates/zbus), with its default features disabled if they only need the D-Bus wire format. Users of the GVariant format should migrate to [`zgvariant`](https://crates.io/crates/zgvariant).
+    ├ Announcement: https://github.com/z-galaxy/zbus/issues/2043
+    ├ Solution: No safe upgrade is available!
+    ├ zvariant v5.15.0
+      ├── accesskit_atspi_common v0.21.0
+      │   └── accesskit_unix v0.24.0
+      │       └── accesskit_winit v0.34.1
+      │           └── egui-winit v0.37.0
+      │               └── eframe v0.37.0
+      │                   ├── gridcraft v0.19.1
+      │                   └── gridcraft-web v0.19.1
+      ├── atspi-common v0.13.0
+      │   ├── accesskit_atspi_common v0.21.0 (*)
+      │   ├── atspi v0.29.0
+      │   │   └── accesskit_unix v0.24.0 (*)
+      │   └── atspi-proxies v0.13.0
+      │       └── atspi v0.29.0 (*)
+      ├── zbus v5.19.0
+      │   ├── accesskit_unix v0.24.0 (*)
+      │   ├── atspi-common v0.13.0 (*)
+      │   ├── atspi-proxies v0.13.0 (*)
+      │   └── gridcraft-ui-egui v0.19.1
+      │       ├── gridcraft v0.19.1 (*)
+      │       └── gridcraft-web v0.19.1 (*)
+      ├── zbus-lockstep v0.5.2
+      │   ├── atspi-common v0.13.0 (*)
+      │   └── zbus-lockstep-macros v0.5.2
+      │       └── atspi-common v0.13.0 (*)
+      ├── zbus-lockstep-macros v0.5.2 (*)
+      ├── zbus_macros v5.19.0
+      │   └── zbus v5.19.0 (*)
+      ├── zbus_names v4.3.4
+      │   ├── atspi-common v0.13.0 (*)
+      │   ├── zbus v5.19.0 (*)
+      │   ├── zbus_macros v5.19.0 (*)
+      │   └── zbus_xml v5.2.1
+      │       ├── zbus-lockstep v0.5.2 (*)
+      │       └── zbus-lockstep-macros v0.5.2 (*)
+      └── zbus_xml v5.2.1 (*)
+
+error[unmaintained]: `zvariant_derive` is unmaintained
+    ┌─ gridcraft/Cargo.lock:628:1
+    │
+628 │ zvariant_derive 5.15.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2026-0372
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0372
+    ├ The `zvariant_derive` crate is no longer maintained as a standalone crate.
+      
+      Its derive macros are provided by [`zbus`](https://crates.io/crates/zbus) starting with version `6.0.0`.
+      
+      Users should migrate to [`zbus`](https://crates.io/crates/zbus), with its default features disabled if they only need the D-Bus wire format.
+    ├ Announcement: https://github.com/z-galaxy/zbus/issues/2043
+    ├ Solution: No safe upgrade is available!
+    ├ zvariant_derive v5.15.0
+      └── zvariant v5.15.0
+          ├── accesskit_atspi_common v0.21.0
+          │   └── accesskit_unix v0.24.0
+          │       └── accesskit_winit v0.34.1
+          │           └── egui-winit v0.37.0
+          │               └── eframe v0.37.0
+          │                   ├── gridcraft v0.19.1
+          │                   └── gridcraft-web v0.19.1
+          ├── atspi-common v0.13.0
+          │   ├── accesskit_atspi_common v0.21.0 (*)
+          │   ├── atspi v0.29.0
+          │   │   └── accesskit_unix v0.24.0 (*)
+          │   └── atspi-proxies v0.13.0
+          │       └── atspi v0.29.0 (*)
+          ├── zbus v5.19.0
+          │   ├── accesskit_unix v0.24.0 (*)
+          │   ├── atspi-common v0.13.0 (*)
+          │   ├── atspi-proxies v0.13.0 (*)
+          │   └── gridcraft-ui-egui v0.19.1
+          │       ├── gridcraft v0.19.1 (*)
+          │       └── gridcraft-web v0.19.1 (*)
+          ├── zbus-lockstep v0.5.2
+          │   ├── atspi-common v0.13.0 (*)
+          │   └── zbus-lockstep-macros v0.5.2
+          │       └── atspi-common v0.13.0 (*)
+          ├── zbus-lockstep-macros v0.5.2 (*)
+          ├── zbus_macros v5.19.0
+          │   └── zbus v5.19.0 (*)
+          ├── zbus_names v4.3.4
+          │   ├── atspi-common v0.13.0 (*)
+          │   ├── zbus v5.19.0 (*)
+          │   ├── zbus_macros v5.19.0 (*)
+          │   └── zbus_xml v5.2.1
+          │       ├── zbus-lockstep v0.5.2 (*)
+          │       └── zbus-lockstep-macros v0.5.2 (*)
+          └── zbus_xml v5.2.1 (*)
+
+warning[yanked]: detected yanked crate (try `cargo update -p async-executor`)
+   ┌─ gridcraft/Cargo.lock:26:1
+   │
+26 │ async-executor 1.14.0 registry+https://github.com/rust-lang/crates.io-index
+   │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ yanked version
+   │
+   ├ async-executor v1.14.0
+     ├── accesskit_unix v0.24.0
+     │   └── accesskit_winit v0.34.1
+     │       └── egui-winit v0.37.0
+     │           └── eframe v0.37.0
+     │               ├── gridcraft v0.19.1
+     │               └── gridcraft-web v0.19.1
+     └── zbus v5.19.0
+         ├── accesskit_unix v0.24.0 (*)
+         ├── atspi-common v0.13.0
+         │   ├── accesskit_atspi_common v0.21.0
+         │   │   └── accesskit_unix v0.24.0 (*)
+         │   ├── atspi v0.29.0
+         │   │   └── accesskit_unix v0.24.0 (*)
+         │   └── atspi-proxies v0.13.0
+         │       └── atspi v0.29.0 (*)
+         ├── atspi-proxies v0.13.0 (*)
+         └── gridcraft-ui-egui v0.19.1
+             ├── gridcraft v0.19.1 (*)
+             └── gridcraft-web v0.19.1 (*)
+
+warning[yanked]: detected yanked crate (try `cargo update -p clipboard-win`)
+   ┌─ gridcraft/Cargo.lock:70:1
+   │
+70 │ clipboard-win 5.4.1 registry+https://github.com/rust-lang/crates.io-index
+   │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ yanked version
+   │
+   ├ clipboard-win v5.4.1
+     └── arboard v3.7.0
+         ├── egui-winit v0.37.0
+         │   └── eframe v0.37.0
+         │       ├── gridcraft v0.19.1
+         │       └── gridcraft-web v0.19.1
+         └── gridcraft v0.19.1 (*)
+
+advisories FAILED

@@ -1,0 +1,620 @@
+error[rejected]: failed to satisfy license requirements
+  ┌─ :9:48
+  │
+9 │ license = "(MIT OR Apache-2.0) AND OFL-1.1 AND Ubuntu-font-1.0" # OFL and UFL are from the font files themselves.
+  │            ────────────────────────────────────━━━━━━━━━━━━━━━
+  │                                                │
+  │                                                rejected: license is not explicitly allowed
+  │
+  ├ Ubuntu-font-1.0 - Ubuntu Font Licence v1.0:
+  ├   - No additional metadata available for license
+  ├ epaint_default_fonts v0.37.0
+    ├── deckcraft-fonts v0.18.1
+    │   ├── deckcraft-engine v0.18.1
+    │   │   ├── deckcraft v0.18.1
+    │   │   ├── deckcraft-cli v0.18.1
+    │   │   ├── deckcraft-mcp v0.18.1
+    │   │   │   └── deckcraft-cli v0.18.1 (*)
+    │   │   ├── (dev) deckcraft-pptx v0.18.1
+    │   │   │   └── deckcraft-engine v0.18.1 (*)
+    │   │   ├── deckcraft-ui-egui v0.18.1
+    │   │   │   ├── deckcraft v0.18.1 (*)
+    │   │   │   └── deckcraft-web v0.18.1
+    │   │   └── deckcraft-web v0.18.1 (*)
+    │   ├── deckcraft-pdf v0.18.1
+    │   │   └── deckcraft-engine v0.18.1 (*)
+    │   ├── deckcraft-render v0.18.1
+    │   │   ├── deckcraft-engine v0.18.1 (*)
+    │   │   ├── deckcraft-mcp v0.18.1 (*)
+    │   │   ├── deckcraft-pdf v0.18.1 (*)
+    │   │   └── deckcraft-ui-egui v0.18.1 (*)
+    │   ├── deckcraft-text v0.18.1
+    │   │   ├── deckcraft-engine v0.18.1 (*)
+    │   │   ├── deckcraft-pdf v0.18.1 (*)
+    │   │   ├── deckcraft-render v0.18.1 (*)
+    │   │   └── deckcraft-ui-egui v0.18.1 (*)
+    │   └── deckcraft-ui-egui v0.18.1 (*)
+    └── epaint v0.37.0
+        ├── craft-ui v0.1.0
+        │   └── deckcraft-ui-egui v0.18.1 (*)
+        ├── egui v0.37.0
+        │   ├── craft-ui v0.1.0 (*)
+        │   ├── craft-update v0.1.0
+        │   │   ├── deckcraft v0.18.1 (*)
+        │   │   └── deckcraft-ui-egui v0.18.1 (*)
+        │   ├── deckcraft v0.18.1 (*)
+        │   ├── (dev) deckcraft-ui-egui v0.18.1 (*)
+        │   ├── deckcraft-web v0.18.1 (*)
+        │   ├── eframe v0.37.0
+        │   │   ├── deckcraft v0.18.1 (*)
+        │   │   └── deckcraft-web v0.18.1 (*)
+        │   ├── egui-wgpu v0.37.0
+        │   │   ├── eframe v0.37.0 (*)
+        │   │   └── egui_kittest v0.37.0
+        │   │       └── (dev) deckcraft-ui-egui v0.18.1 (*)
+        │   ├── egui-winit v0.37.0
+        │   │   └── eframe v0.37.0 (*)
+        │   ├── egui_extras v0.37.0
+        │   │   └── deckcraft-ui-egui v0.18.1 (*)
+        │   └── egui_kittest v0.37.0 (*)
+        └── egui-wgpu v0.37.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :39:12
+   │
+39 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia v0.5.5
+     └── deckcraft-media v0.18.1
+         ├── deckcraft v0.18.1
+         ├── deckcraft-engine v0.18.1
+         │   ├── deckcraft v0.18.1 (*)
+         │   ├── deckcraft-cli v0.18.1
+         │   ├── deckcraft-mcp v0.18.1
+         │   │   └── deckcraft-cli v0.18.1 (*)
+         │   ├── (dev) deckcraft-pptx v0.18.1
+         │   │   └── deckcraft-engine v0.18.1 (*)
+         │   ├── deckcraft-ui-egui v0.18.1
+         │   │   ├── deckcraft v0.18.1 (*)
+         │   │   └── deckcraft-web v0.18.1
+         │   └── deckcraft-web v0.18.1 (*)
+         └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :38:12
+   │
+38 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-bundle-flac v0.5.5
+     └── symphonia v0.5.5
+         └── deckcraft-media v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-engine v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   ├── deckcraft-cli v0.18.1
+             │   ├── deckcraft-mcp v0.18.1
+             │   │   └── deckcraft-cli v0.18.1 (*)
+             │   ├── (dev) deckcraft-pptx v0.18.1
+             │   │   └── deckcraft-engine v0.18.1 (*)
+             │   ├── deckcraft-ui-egui v0.18.1
+             │   │   ├── deckcraft v0.18.1 (*)
+             │   │   └── deckcraft-web v0.18.1
+             │   └── deckcraft-web v0.18.1 (*)
+             └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :39:12
+   │
+39 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-bundle-mp3 v0.5.5
+     └── symphonia v0.5.5
+         └── deckcraft-media v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-engine v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   ├── deckcraft-cli v0.18.1
+             │   ├── deckcraft-mcp v0.18.1
+             │   │   └── deckcraft-cli v0.18.1 (*)
+             │   ├── (dev) deckcraft-pptx v0.18.1
+             │   │   └── deckcraft-engine v0.18.1 (*)
+             │   ├── deckcraft-ui-egui v0.18.1
+             │   │   ├── deckcraft v0.18.1 (*)
+             │   │   └── deckcraft-web v0.18.1
+             │   └── deckcraft-web v0.18.1 (*)
+             └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :42:12
+   │
+42 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-codec-aac v0.5.5
+     └── symphonia v0.5.5
+         └── deckcraft-media v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-engine v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   ├── deckcraft-cli v0.18.1
+             │   ├── deckcraft-mcp v0.18.1
+             │   │   └── deckcraft-cli v0.18.1 (*)
+             │   ├── (dev) deckcraft-pptx v0.18.1
+             │   │   └── deckcraft-engine v0.18.1 (*)
+             │   ├── deckcraft-ui-egui v0.18.1
+             │   │   ├── deckcraft v0.18.1 (*)
+             │   │   └── deckcraft-web v0.18.1
+             │   └── deckcraft-web v0.18.1 (*)
+             └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :41:12
+   │
+41 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-codec-adpcm v0.5.5
+     └── symphonia v0.5.5
+         └── deckcraft-media v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-engine v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   ├── deckcraft-cli v0.18.1
+             │   ├── deckcraft-mcp v0.18.1
+             │   │   └── deckcraft-cli v0.18.1 (*)
+             │   ├── (dev) deckcraft-pptx v0.18.1
+             │   │   └── deckcraft-engine v0.18.1 (*)
+             │   ├── deckcraft-ui-egui v0.18.1
+             │   │   ├── deckcraft v0.18.1 (*)
+             │   │   └── deckcraft-web v0.18.1
+             │   └── deckcraft-web v0.18.1 (*)
+             └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :38:12
+   │
+38 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-codec-alac v0.5.5
+     └── symphonia v0.5.5
+         └── deckcraft-media v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-engine v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   ├── deckcraft-cli v0.18.1
+             │   ├── deckcraft-mcp v0.18.1
+             │   │   └── deckcraft-cli v0.18.1 (*)
+             │   ├── (dev) deckcraft-pptx v0.18.1
+             │   │   └── deckcraft-engine v0.18.1 (*)
+             │   ├── deckcraft-ui-egui v0.18.1
+             │   │   ├── deckcraft v0.18.1 (*)
+             │   │   └── deckcraft-web v0.18.1
+             │   └── deckcraft-web v0.18.1 (*)
+             └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :38:12
+   │
+38 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-codec-pcm v0.5.5
+     └── symphonia v0.5.5
+         └── deckcraft-media v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-engine v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   ├── deckcraft-cli v0.18.1
+             │   ├── deckcraft-mcp v0.18.1
+             │   │   └── deckcraft-cli v0.18.1 (*)
+             │   ├── (dev) deckcraft-pptx v0.18.1
+             │   │   └── deckcraft-engine v0.18.1 (*)
+             │   ├── deckcraft-ui-egui v0.18.1
+             │   │   ├── deckcraft v0.18.1 (*)
+             │   │   └── deckcraft-web v0.18.1
+             │   └── deckcraft-web v0.18.1 (*)
+             └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :38:12
+   │
+38 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-codec-vorbis v0.5.5
+     └── symphonia v0.5.5
+         └── deckcraft-media v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-engine v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   ├── deckcraft-cli v0.18.1
+             │   ├── deckcraft-mcp v0.18.1
+             │   │   └── deckcraft-cli v0.18.1 (*)
+             │   ├── (dev) deckcraft-pptx v0.18.1
+             │   │   └── deckcraft-engine v0.18.1 (*)
+             │   ├── deckcraft-ui-egui v0.18.1
+             │   │   ├── deckcraft v0.18.1 (*)
+             │   │   └── deckcraft-web v0.18.1
+             │   └── deckcraft-web v0.18.1 (*)
+             └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :39:12
+   │
+39 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-core v0.5.5
+     ├── symphonia v0.5.5
+     │   └── deckcraft-media v0.18.1
+     │       ├── deckcraft v0.18.1
+     │       ├── deckcraft-engine v0.18.1
+     │       │   ├── deckcraft v0.18.1 (*)
+     │       │   ├── deckcraft-cli v0.18.1
+     │       │   ├── deckcraft-mcp v0.18.1
+     │       │   │   └── deckcraft-cli v0.18.1 (*)
+     │       │   ├── (dev) deckcraft-pptx v0.18.1
+     │       │   │   └── deckcraft-engine v0.18.1 (*)
+     │       │   ├── deckcraft-ui-egui v0.18.1
+     │       │   │   ├── deckcraft v0.18.1 (*)
+     │       │   │   └── deckcraft-web v0.18.1
+     │       │   └── deckcraft-web v0.18.1 (*)
+     │       └── deckcraft-ui-egui v0.18.1 (*)
+     ├── symphonia-bundle-flac v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-bundle-mp3 v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-codec-aac v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-codec-adpcm v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-codec-alac v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-codec-pcm v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-codec-vorbis v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-format-caf v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-format-isomp4 v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-format-mkv v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-format-ogg v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-format-riff v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-metadata v0.5.5
+     │   ├── symphonia v0.5.5 (*)
+     │   ├── symphonia-bundle-flac v0.5.5 (*)
+     │   ├── symphonia-bundle-mp3 v0.5.5 (*)
+     │   ├── symphonia-format-caf v0.5.5 (*)
+     │   ├── symphonia-format-isomp4 v0.5.5 (*)
+     │   ├── symphonia-format-mkv v0.5.5 (*)
+     │   ├── symphonia-format-ogg v0.5.5 (*)
+     │   ├── symphonia-format-riff v0.5.5 (*)
+     │   └── symphonia-utils-xiph v0.5.5
+     │       ├── symphonia-bundle-flac v0.5.5 (*)
+     │       ├── symphonia-codec-vorbis v0.5.5 (*)
+     │       ├── symphonia-format-isomp4 v0.5.5 (*)
+     │       ├── symphonia-format-mkv v0.5.5 (*)
+     │       └── symphonia-format-ogg v0.5.5 (*)
+     └── symphonia-utils-xiph v0.5.5 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :41:12
+   │
+41 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-format-caf v0.5.5
+     └── symphonia v0.5.5
+         └── deckcraft-media v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-engine v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   ├── deckcraft-cli v0.18.1
+             │   ├── deckcraft-mcp v0.18.1
+             │   │   └── deckcraft-cli v0.18.1 (*)
+             │   ├── (dev) deckcraft-pptx v0.18.1
+             │   │   └── deckcraft-engine v0.18.1 (*)
+             │   ├── deckcraft-ui-egui v0.18.1
+             │   │   ├── deckcraft v0.18.1 (*)
+             │   │   └── deckcraft-web v0.18.1
+             │   └── deckcraft-web v0.18.1 (*)
+             └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :39:12
+   │
+39 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-format-isomp4 v0.5.5
+     └── symphonia v0.5.5
+         └── deckcraft-media v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-engine v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   ├── deckcraft-cli v0.18.1
+             │   ├── deckcraft-mcp v0.18.1
+             │   │   └── deckcraft-cli v0.18.1 (*)
+             │   ├── (dev) deckcraft-pptx v0.18.1
+             │   │   └── deckcraft-engine v0.18.1 (*)
+             │   ├── deckcraft-ui-egui v0.18.1
+             │   │   ├── deckcraft v0.18.1 (*)
+             │   │   └── deckcraft-web v0.18.1
+             │   └── deckcraft-web v0.18.1 (*)
+             └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :39:12
+   │
+39 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-format-mkv v0.5.5
+     └── symphonia v0.5.5
+         └── deckcraft-media v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-engine v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   ├── deckcraft-cli v0.18.1
+             │   ├── deckcraft-mcp v0.18.1
+             │   │   └── deckcraft-cli v0.18.1 (*)
+             │   ├── (dev) deckcraft-pptx v0.18.1
+             │   │   └── deckcraft-engine v0.18.1 (*)
+             │   ├── deckcraft-ui-egui v0.18.1
+             │   │   ├── deckcraft v0.18.1 (*)
+             │   │   └── deckcraft-web v0.18.1
+             │   └── deckcraft-web v0.18.1 (*)
+             └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :38:12
+   │
+38 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-format-ogg v0.5.5
+     └── symphonia v0.5.5
+         └── deckcraft-media v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-engine v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   ├── deckcraft-cli v0.18.1
+             │   ├── deckcraft-mcp v0.18.1
+             │   │   └── deckcraft-cli v0.18.1 (*)
+             │   ├── (dev) deckcraft-pptx v0.18.1
+             │   │   └── deckcraft-engine v0.18.1 (*)
+             │   ├── deckcraft-ui-egui v0.18.1
+             │   │   ├── deckcraft v0.18.1 (*)
+             │   │   └── deckcraft-web v0.18.1
+             │   └── deckcraft-web v0.18.1 (*)
+             └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :42:12
+   │
+42 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-format-riff v0.5.5
+     └── symphonia v0.5.5
+         └── deckcraft-media v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-engine v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   ├── deckcraft-cli v0.18.1
+             │   ├── deckcraft-mcp v0.18.1
+             │   │   └── deckcraft-cli v0.18.1 (*)
+             │   ├── (dev) deckcraft-pptx v0.18.1
+             │   │   └── deckcraft-engine v0.18.1 (*)
+             │   ├── deckcraft-ui-egui v0.18.1
+             │   │   ├── deckcraft v0.18.1 (*)
+             │   │   └── deckcraft-web v0.18.1
+             │   └── deckcraft-web v0.18.1 (*)
+             └── deckcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :39:12
+   │
+39 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-metadata v0.5.5
+     ├── symphonia v0.5.5
+     │   └── deckcraft-media v0.18.1
+     │       ├── deckcraft v0.18.1
+     │       ├── deckcraft-engine v0.18.1
+     │       │   ├── deckcraft v0.18.1 (*)
+     │       │   ├── deckcraft-cli v0.18.1
+     │       │   ├── deckcraft-mcp v0.18.1
+     │       │   │   └── deckcraft-cli v0.18.1 (*)
+     │       │   ├── (dev) deckcraft-pptx v0.18.1
+     │       │   │   └── deckcraft-engine v0.18.1 (*)
+     │       │   ├── deckcraft-ui-egui v0.18.1
+     │       │   │   ├── deckcraft v0.18.1 (*)
+     │       │   │   └── deckcraft-web v0.18.1
+     │       │   └── deckcraft-web v0.18.1 (*)
+     │       └── deckcraft-ui-egui v0.18.1 (*)
+     ├── symphonia-bundle-flac v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-bundle-mp3 v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-format-caf v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-format-isomp4 v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-format-mkv v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-format-ogg v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-format-riff v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     └── symphonia-utils-xiph v0.5.5
+         ├── symphonia-bundle-flac v0.5.5 (*)
+         ├── symphonia-codec-vorbis v0.5.5
+         │   └── symphonia v0.5.5 (*)
+         ├── symphonia-format-isomp4 v0.5.5 (*)
+         ├── symphonia-format-mkv v0.5.5 (*)
+         └── symphonia-format-ogg v0.5.5 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :38:12
+   │
+38 │ license = "MPL-2.0"
+   │            ━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ MPL-2.0 - Mozilla Public License 2.0:
+   ├   - OSI approved
+   ├   - FSF Free/Libre
+   ├   - Copyleft
+   ├ symphonia-utils-xiph v0.5.5
+     ├── symphonia-bundle-flac v0.5.5
+     │   └── symphonia v0.5.5
+     │       └── deckcraft-media v0.18.1
+     │           ├── deckcraft v0.18.1
+     │           ├── deckcraft-engine v0.18.1
+     │           │   ├── deckcraft v0.18.1 (*)
+     │           │   ├── deckcraft-cli v0.18.1
+     │           │   ├── deckcraft-mcp v0.18.1
+     │           │   │   └── deckcraft-cli v0.18.1 (*)
+     │           │   ├── (dev) deckcraft-pptx v0.18.1
+     │           │   │   └── deckcraft-engine v0.18.1 (*)
+     │           │   ├── deckcraft-ui-egui v0.18.1
+     │           │   │   ├── deckcraft v0.18.1 (*)
+     │           │   │   └── deckcraft-web v0.18.1
+     │           │   └── deckcraft-web v0.18.1 (*)
+     │           └── deckcraft-ui-egui v0.18.1 (*)
+     ├── symphonia-codec-vorbis v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-format-isomp4 v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     ├── symphonia-format-mkv v0.5.5
+     │   └── symphonia v0.5.5 (*)
+     └── symphonia-format-ogg v0.5.5
+         └── symphonia v0.5.5 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :26:12
+   │
+26 │ license = "CDLA-Permissive-2.0"
+   │            ━━━━━━━━━━━━━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ CDLA-Permissive-2.0 - Community Data License Agreement Permissive 2.0:
+   ├   - No additional metadata available for license
+   ├ webpki-root-certs v1.0.11
+     └── rustls-platform-verifier v0.7.1
+         └── ureq v3.5.0
+             └── craft-update v0.1.0
+                 ├── deckcraft v0.18.1
+                 └── deckcraft-ui-egui v0.18.1
+                     ├── deckcraft v0.18.1 (*)
+                     └── deckcraft-web v0.18.1
+
+warning[license-not-encountered]: license was not encountered
+   ┌─ :17:21
+   │
+17 │     "Unicode-3.0", "Unicode-DFS-2016", "CC0-1.0", "BSL-1.0", "0BSD", "OFL-1.1", "Unlicense",
+   │                     ━━━━━━━━━━━━━━━━ unmatched license allowance
+
+licenses FAILED

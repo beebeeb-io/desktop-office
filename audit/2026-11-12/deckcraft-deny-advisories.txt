@@ -1,0 +1,403 @@
+error[unmaintained]: `rustybuzz` is unmaintained
+    ┌─ deckcraft/Cargo.lock:378:1
+    │
+378 │ rustybuzz 0.20.1 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2026-0206
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0206
+    ├ The current maintainer of `rustybuzz` has stated that the crate is unmaintained and will not receive further fixes or updates (see the referenced issue).
+      
+      ## Alternative(s)
+      
+      - [`harfrust`](https://github.com/harfbuzz/harfrust), an actively maintained and updated alternative which is part of the Harfbuzz project.
+    ├ Announcement: https://github.com/harfbuzz/rustybuzz/issues/166
+    ├ Solution: No safe upgrade is available!
+    ├ rustybuzz v0.20.1
+      └── krilla v0.8.2
+          ├── craft-pdf v0.1.0
+          │   └── deckcraft-pdf v0.18.1
+          │       └── deckcraft-engine v0.18.1
+          │           ├── deckcraft v0.18.1
+          │           ├── deckcraft-cli v0.18.1
+          │           ├── deckcraft-mcp v0.18.1
+          │           │   └── deckcraft-cli v0.18.1 (*)
+          │           ├── (dev) deckcraft-pptx v0.18.1
+          │           │   └── deckcraft-engine v0.18.1 (*)
+          │           ├── deckcraft-ui-egui v0.18.1
+          │           │   ├── deckcraft v0.18.1 (*)
+          │           │   └── deckcraft-web v0.18.1
+          │           └── deckcraft-web v0.18.1 (*)
+          └── deckcraft-pdf v0.18.1 (*)
+
+error[unmaintained]: `ttf-parser` is unmaintained
+    ┌─ deckcraft/Cargo.lock:460:1
+    │
+460 │ ttf-parser 0.25.1 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2026-0192
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0192
+    ├ The author of `ttf-parser` has stated that the crate is unmaintained and will not receive further fixes (see the referenced issue).
+      
+      ## Alternative(s)
+      
+      - [`skrifa`](https://crates.io/crates/skrifa), an actively maintained TrueType and OpenType font parsing crate, part of the Google Fonts "oxidize" (`fontations`) project.
+    ├ Announcement: https://github.com/harfbuzz/ttf-parser/issues/217
+    ├ Solution: No safe upgrade is available!
+    ├ ttf-parser v0.25.1
+      └── rustybuzz v0.20.1
+          └── krilla v0.8.2
+              ├── craft-pdf v0.1.0
+              │   └── deckcraft-pdf v0.18.1
+              │       └── deckcraft-engine v0.18.1
+              │           ├── deckcraft v0.18.1
+              │           ├── deckcraft-cli v0.18.1
+              │           ├── deckcraft-mcp v0.18.1
+              │           │   └── deckcraft-cli v0.18.1 (*)
+              │           ├── (dev) deckcraft-pptx v0.18.1
+              │           │   └── deckcraft-engine v0.18.1 (*)
+              │           ├── deckcraft-ui-egui v0.18.1
+              │           │   ├── deckcraft v0.18.1 (*)
+              │           │   └── deckcraft-web v0.18.1
+              │           └── deckcraft-web v0.18.1 (*)
+              └── deckcraft-pdf v0.18.1 (*)
+
+error[unmaintained]: `zbus_names` is unmaintained
+    ┌─ deckcraft/Cargo.lock:585:1
+    │
+585 │ zbus_names 4.3.4 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2026-0371
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0371
+    ├ The `zbus_names` crate is no longer maintained as a standalone crate.
+      
+      It has been merged into [`zbus`](https://crates.io/crates/zbus) starting with version `6.0.0`, as its `names` module.
+      
+      Users should migrate to [`zbus`](https://crates.io/crates/zbus), with its default features disabled if they only need the D-Bus name types.
+    ├ Announcement: https://github.com/z-galaxy/zbus/issues/2043
+    ├ Solution: No safe upgrade is available!
+    ├ zbus_names v4.3.4
+      ├── atspi-common v0.13.0
+      │   ├── accesskit_atspi_common v0.21.0
+      │   │   └── accesskit_unix v0.24.0
+      │   │       └── accesskit_winit v0.34.1
+      │   │           └── egui-winit v0.37.0
+      │   │               └── eframe v0.37.0
+      │   │                   ├── deckcraft v0.18.1
+      │   │                   └── deckcraft-web v0.18.1
+      │   ├── atspi v0.29.0
+      │   │   └── accesskit_unix v0.24.0 (*)
+      │   └── atspi-proxies v0.13.0
+      │       └── atspi v0.29.0 (*)
+      ├── zbus v5.19.0
+      │   ├── accesskit_unix v0.24.0 (*)
+      │   ├── atspi-common v0.13.0 (*)
+      │   └── atspi-proxies v0.13.0 (*)
+      ├── zbus_macros v5.19.0
+      │   └── zbus v5.19.0 (*)
+      └── zbus_xml v5.2.1
+          ├── zbus-lockstep v0.5.2
+          │   ├── atspi-common v0.13.0 (*)
+          │   └── zbus-lockstep-macros v0.5.2
+          │       └── atspi-common v0.13.0 (*)
+          └── zbus-lockstep-macros v0.5.2 (*)
+
+error[vulnerability]:  Insecure Preservation of SUID/SGID Bits during ZIP Extraction Leading to Potential Privilege Escalation
+    ┌─ deckcraft/Cargo.lock:596:1
+    │
+596 │ zip 3.0.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0367
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0367
+    ├ The `zip` crate preserves privileged Unix permission bits (SUID, SGID, and sticky bits) from ZIP `external_attributes` during extraction, instead of masking them to safe permission bits. If a privileged process (for example, `root` in an installer, CI/CD pipeline, or container build) extracts an attacker-controlled ZIP archive using `ZipArchive::extract()` or the stream extraction API, files can be created as setuid-root or setgid. This behavior allows the creation of SUID/SGID files during extraction, which can lead to local privilege escalation depending on the execution environment.
+      
+      For further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-vv5m-jxxh-4627
+    ├ Solution: Upgrade to >=9.0.0 (try `cargo update -p zip`)
+    ├ zip v3.0.0
+      ├── (dev) deckcraft-cli v0.18.1
+      ├── (dev) deckcraft-engine v0.18.1
+      │   ├── deckcraft v0.18.1
+      │   ├── deckcraft-cli v0.18.1 (*)
+      │   ├── deckcraft-mcp v0.18.1
+      │   │   └── deckcraft-cli v0.18.1 (*)
+      │   ├── (dev) deckcraft-pptx v0.18.1
+      │   │   └── deckcraft-engine v0.18.1 (*)
+      │   ├── deckcraft-ui-egui v0.18.1
+      │   │   ├── deckcraft v0.18.1 (*)
+      │   │   └── deckcraft-web v0.18.1
+      │   └── deckcraft-web v0.18.1 (*)
+      ├── deckcraft-format v0.18.1
+      │   └── deckcraft-engine v0.18.1 (*)
+      └── (dev) deckcraft-pptx v0.18.1 (*)
+
+error[vulnerability]: zip: `ZipArchive::extract` creates symbolic links whose attacker-controlled targets are outside the destination directory
+    ┌─ deckcraft/Cargo.lock:596:1
+    │
+596 │ zip 3.0.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0368
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0368
+    ├ In `zip` 9.0.0-pre2, `ZipArchive::extract` creates a symbolic link from an archive entry after validating only the output entry path. The link target bytes are passed directly to the platform symlink API, so a malicious archive can create an entry inside the destination that resolves to an attacker-chosen path outside it. This behavior was verified on macOS and Linux. On either platform, a subsequent application read or write through that extracted entry accesses the external target with the extracting process's permissions.
+      
+      For further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-4v9h-p7m9-rh26
+    ├ Solution: Upgrade to >=9.0.0 (try `cargo update -p zip`)
+    ├ zip v3.0.0
+      ├── (dev) deckcraft-cli v0.18.1
+      ├── (dev) deckcraft-engine v0.18.1
+      │   ├── deckcraft v0.18.1
+      │   ├── deckcraft-cli v0.18.1 (*)
+      │   ├── deckcraft-mcp v0.18.1
+      │   │   └── deckcraft-cli v0.18.1 (*)
+      │   ├── (dev) deckcraft-pptx v0.18.1
+      │   │   └── deckcraft-engine v0.18.1 (*)
+      │   ├── deckcraft-ui-egui v0.18.1
+      │   │   ├── deckcraft v0.18.1 (*)
+      │   │   └── deckcraft-web v0.18.1
+      │   └── deckcraft-web v0.18.1 (*)
+      ├── deckcraft-format v0.18.1
+      │   └── deckcraft-engine v0.18.1 (*)
+      └── (dev) deckcraft-pptx v0.18.1 (*)
+
+error[vulnerability]: ZipStreamReader::extract() and ZipArchive::extract() apply Unix permissions through symlinks without confining the target
+    ┌─ deckcraft/Cargo.lock:596:1
+    │
+596 │ zip 3.0.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0369
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0369
+    ├ `ZipStreamReader::extract()` applies Unix permissions through extracted symlinks without validating the symlink target stays within the destination
+      
+      For further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-4684-h2q9-2vcp
+    ├ Solution: Upgrade to >=9.0.0 (try `cargo update -p zip`)
+    ├ zip v3.0.0
+      ├── (dev) deckcraft-cli v0.18.1
+      ├── (dev) deckcraft-engine v0.18.1
+      │   ├── deckcraft v0.18.1
+      │   ├── deckcraft-cli v0.18.1 (*)
+      │   ├── deckcraft-mcp v0.18.1
+      │   │   └── deckcraft-cli v0.18.1 (*)
+      │   ├── (dev) deckcraft-pptx v0.18.1
+      │   │   └── deckcraft-engine v0.18.1 (*)
+      │   ├── deckcraft-ui-egui v0.18.1
+      │   │   ├── deckcraft v0.18.1 (*)
+      │   │   └── deckcraft-web v0.18.1
+      │   └── deckcraft-web v0.18.1 (*)
+      ├── deckcraft-format v0.18.1
+      │   └── deckcraft-engine v0.18.1 (*)
+      └── (dev) deckcraft-pptx v0.18.1 (*)
+
+error[vulnerability]: zip: `ZipArchive::extract` aborts the process on a symlink entry with a large declared size
+    ┌─ deckcraft/Cargo.lock:596:1
+    │
+596 │ zip 3.0.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0429
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0429
+    ├ `ZipArchive::extract()` sizes the symlink-target buffer from the uncompressed
+      size declared in the central directory record, before reading a single byte of
+      entry data:
+      
+      ```rust
+      let mut target = Vec::with_capacity(file.size() as usize);
+      ```
+      
+      Both inputs are attacker-controlled. `ZipFile::size()` returns
+      `uncompressed_size` verbatim from the central directory, widened to a full `u64`
+      by a ZIP64 extended-information extra field, and is never cross-checked against
+      the compressed size, the remaining archive length, or any platform-appropriate
+      bound for a symlink target. `ZipFile::is_symlink()` is decided entirely by the
+      `S_IFLNK` bit of the external-attributes field.
+      
+      `Vec::with_capacity()` is infallible: when the reservation is refused it calls
+      `handle_alloc_error()` and aborts the process. This is not a Rust panic. It is
+      not caught by `catch_unwind()`, is unaffected by `panic = "unwind"`, and is not
+      contained by running the call on a worker thread.
+      
+      A 112-byte archive is sufficient. One `Stored` entry flagged `S_IFLNK` with a
+      ZIP64 field declaring `uncompressed_size = 2^62` and a zero-byte payload makes
+      `extract()` fail with:
+      
+      ```
+      memory allocation of 4611686018427387904 bytes failed
+      Aborted (core dumped)          # exit 134
+      ```
+      
+      The declared value only needs to exceed the host's address space, not its RAM:
+      `Vec::with_capacity()` maps address space without touching pages, so resident
+      memory stays flat and the abort happens on the refused reservation itself. Under
+      a `ulimit -v` cap or a memory-constrained container the threshold drops far
+      enough that a plain 32-bit `uncompressed_size` with no ZIP64 field suffices.
+      
+      Applications that extract archives from untrusted input are affected on Unix and
+      Windows targets with default features and no special configuration: upload
+      handling, mail-attachment processing, package and artefact ingestion, backup
+      restore and container-image layer extraction. No confidentiality or integrity
+      property is affected: there is no memory unsafety, no out-of-bounds access, no
+      disclosure and no data corruption.
+      
+      The fix landed in [zip-rs/zip2#984](https://github.com/zip-rs/zip2/pull/984) and
+      shipped in 9.0.0.
+      
+      For further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-q7v9-x93c-xqv3
+    ├ Solution: Upgrade to >=9.0.0 (try `cargo update -p zip`)
+    ├ zip v3.0.0
+      ├── (dev) deckcraft-cli v0.18.1
+      ├── (dev) deckcraft-engine v0.18.1
+      │   ├── deckcraft v0.18.1
+      │   ├── deckcraft-cli v0.18.1 (*)
+      │   ├── deckcraft-mcp v0.18.1
+      │   │   └── deckcraft-cli v0.18.1 (*)
+      │   ├── (dev) deckcraft-pptx v0.18.1
+      │   │   └── deckcraft-engine v0.18.1 (*)
+      │   ├── deckcraft-ui-egui v0.18.1
+      │   │   ├── deckcraft v0.18.1 (*)
+      │   │   └── deckcraft-web v0.18.1
+      │   └── deckcraft-web v0.18.1 (*)
+      ├── deckcraft-format v0.18.1
+      │   └── deckcraft-engine v0.18.1 (*)
+      └── (dev) deckcraft-pptx v0.18.1 (*)
+
+error[unmaintained]: `zvariant` is unmaintained
+    ┌─ deckcraft/Cargo.lock:603:1
+    │
+603 │ zvariant 5.15.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2026-0370
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0370
+    ├ The `zvariant` crate is no longer maintained as a standalone crate.
+      
+      It has been merged into [`zbus`](https://crates.io/crates/zbus) starting with version `6.0.0`, as its `wire` module.
+      
+      Users should migrate to [`zbus`](https://crates.io/crates/zbus), with its default features disabled if they only need the D-Bus wire format. Users of the GVariant format should migrate to [`zgvariant`](https://crates.io/crates/zgvariant).
+    ├ Announcement: https://github.com/z-galaxy/zbus/issues/2043
+    ├ Solution: No safe upgrade is available!
+    ├ zvariant v5.15.0
+      ├── accesskit_atspi_common v0.21.0
+      │   └── accesskit_unix v0.24.0
+      │       └── accesskit_winit v0.34.1
+      │           └── egui-winit v0.37.0
+      │               └── eframe v0.37.0
+      │                   ├── deckcraft v0.18.1
+      │                   └── deckcraft-web v0.18.1
+      ├── atspi-common v0.13.0
+      │   ├── accesskit_atspi_common v0.21.0 (*)
+      │   ├── atspi v0.29.0
+      │   │   └── accesskit_unix v0.24.0 (*)
+      │   └── atspi-proxies v0.13.0
+      │       └── atspi v0.29.0 (*)
+      ├── zbus v5.19.0
+      │   ├── accesskit_unix v0.24.0 (*)
+      │   ├── atspi-common v0.13.0 (*)
+      │   └── atspi-proxies v0.13.0 (*)
+      ├── zbus-lockstep v0.5.2
+      │   ├── atspi-common v0.13.0 (*)
+      │   └── zbus-lockstep-macros v0.5.2
+      │       └── atspi-common v0.13.0 (*)
+      ├── zbus-lockstep-macros v0.5.2 (*)
+      ├── zbus_macros v5.19.0
+      │   └── zbus v5.19.0 (*)
+      ├── zbus_names v4.3.4
+      │   ├── atspi-common v0.13.0 (*)
+      │   ├── zbus v5.19.0 (*)
+      │   ├── zbus_macros v5.19.0 (*)
+      │   └── zbus_xml v5.2.1
+      │       ├── zbus-lockstep v0.5.2 (*)
+      │       └── zbus-lockstep-macros v0.5.2 (*)
+      └── zbus_xml v5.2.1 (*)
+
+error[unmaintained]: `zvariant_derive` is unmaintained
+    ┌─ deckcraft/Cargo.lock:604:1
+    │
+604 │ zvariant_derive 5.15.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2026-0372
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0372
+    ├ The `zvariant_derive` crate is no longer maintained as a standalone crate.
+      
+      Its derive macros are provided by [`zbus`](https://crates.io/crates/zbus) starting with version `6.0.0`.
+      
+      Users should migrate to [`zbus`](https://crates.io/crates/zbus), with its default features disabled if they only need the D-Bus wire format.
+    ├ Announcement: https://github.com/z-galaxy/zbus/issues/2043
+    ├ Solution: No safe upgrade is available!
+    ├ zvariant_derive v5.15.0
+      └── zvariant v5.15.0
+          ├── accesskit_atspi_common v0.21.0
+          │   └── accesskit_unix v0.24.0
+          │       └── accesskit_winit v0.34.1
+          │           └── egui-winit v0.37.0
+          │               └── eframe v0.37.0
+          │                   ├── deckcraft v0.18.1
+          │                   └── deckcraft-web v0.18.1
+          ├── atspi-common v0.13.0
+          │   ├── accesskit_atspi_common v0.21.0 (*)
+          │   ├── atspi v0.29.0
+          │   │   └── accesskit_unix v0.24.0 (*)
+          │   └── atspi-proxies v0.13.0
+          │       └── atspi v0.29.0 (*)
+          ├── zbus v5.19.0
+          │   ├── accesskit_unix v0.24.0 (*)
+          │   ├── atspi-common v0.13.0 (*)
+          │   └── atspi-proxies v0.13.0 (*)
+          ├── zbus-lockstep v0.5.2
+          │   ├── atspi-common v0.13.0 (*)
+          │   └── zbus-lockstep-macros v0.5.2
+          │       └── atspi-common v0.13.0 (*)
+          ├── zbus-lockstep-macros v0.5.2 (*)
+          ├── zbus_macros v5.19.0
+          │   └── zbus v5.19.0 (*)
+          ├── zbus_names v4.3.4
+          │   ├── atspi-common v0.13.0 (*)
+          │   ├── zbus v5.19.0 (*)
+          │   ├── zbus_macros v5.19.0 (*)
+          │   └── zbus_xml v5.2.1
+          │       ├── zbus-lockstep v0.5.2 (*)
+          │       └── zbus-lockstep-macros v0.5.2 (*)
+          └── zbus_xml v5.2.1 (*)
+
+warning[yanked]: detected yanked crate (try `cargo update -p async-executor`)
+   ┌─ deckcraft/Cargo.lock:26:1
+   │
+26 │ async-executor 1.14.0 registry+https://github.com/rust-lang/crates.io-index
+   │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ yanked version
+   │
+   ├ async-executor v1.14.0
+     ├── accesskit_unix v0.24.0
+     │   └── accesskit_winit v0.34.1
+     │       └── egui-winit v0.37.0
+     │           └── eframe v0.37.0
+     │               ├── deckcraft v0.18.1
+     │               └── deckcraft-web v0.18.1
+     └── zbus v5.19.0
+         ├── accesskit_unix v0.24.0 (*)
+         ├── atspi-common v0.13.0
+         │   ├── accesskit_atspi_common v0.21.0
+         │   │   └── accesskit_unix v0.24.0 (*)
+         │   ├── atspi v0.29.0
+         │   │   └── accesskit_unix v0.24.0 (*)
+         │   └── atspi-proxies v0.13.0
+         │       └── atspi v0.29.0 (*)
+         └── atspi-proxies v0.13.0 (*)
+
+warning[yanked]: detected yanked crate (try `cargo update -p clipboard-win`)
+   ┌─ deckcraft/Cargo.lock:64:1
+   │
+64 │ clipboard-win 5.4.1 registry+https://github.com/rust-lang/crates.io-index
+   │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ yanked version
+   │
+   ├ clipboard-win v5.4.1
+     └── arboard v3.7.0
+         ├── deckcraft v0.18.1
+         └── egui-winit v0.37.0
+             └── eframe v0.37.0
+                 ├── deckcraft v0.18.1 (*)
+                 └── deckcraft-web v0.18.1
+
+advisories FAILED

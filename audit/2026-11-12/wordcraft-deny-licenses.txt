@@ -1,0 +1,118 @@
+error[rejected]: failed to satisfy license requirements
+  ┌─ :9:48
+  │
+9 │ license = "(MIT OR Apache-2.0) AND OFL-1.1 AND Ubuntu-font-1.0" # OFL and UFL are from the font files themselves.
+  │            ────────────────────────────────────━━━━━━━━━━━━━━━
+  │                                                │
+  │                                                rejected: license is not explicitly allowed
+  │
+  ├ Ubuntu-font-1.0 - Ubuntu Font Licence v1.0:
+  ├   - No additional metadata available for license
+  ├ epaint_default_fonts v0.37.0
+    └── epaint v0.37.0
+        ├── craft-ui v0.1.0
+        │   └── wordcraft-ui-egui v0.18.1
+        │       ├── wordcraft v0.18.1
+        │       └── wordcraft-web v0.18.1
+        ├── egui v0.37.0
+        │   ├── craft-ui v0.1.0 (*)
+        │   ├── craft-update v0.1.0
+        │   │   ├── wordcraft v0.18.1 (*)
+        │   │   └── wordcraft-ui-egui v0.18.1 (*)
+        │   ├── craft-window v0.1.0
+        │   │   └── wordcraft-ui-egui v0.18.1 (*)
+        │   ├── eframe v0.37.0
+        │   │   ├── wordcraft v0.18.1 (*)
+        │   │   └── wordcraft-web v0.18.1 (*)
+        │   ├── egui-wgpu v0.37.0
+        │   │   ├── eframe v0.37.0 (*)
+        │   │   └── egui_kittest v0.37.0
+        │   │       └── (dev) wordcraft-ui-egui v0.18.1 (*)
+        │   ├── egui-winit v0.37.0
+        │   │   └── eframe v0.37.0 (*)
+        │   ├── egui_extras v0.37.0
+        │   │   └── wordcraft-ui-egui v0.18.1 (*)
+        │   ├── egui_kittest v0.37.0 (*)
+        │   ├── wordcraft v0.18.1 (*)
+        │   ├── (dev) wordcraft-ui-egui v0.18.1 (*)
+        │   └── wordcraft-web v0.18.1 (*)
+        └── egui-wgpu v0.37.0 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :26:12
+   │
+26 │ license = "CDLA-Permissive-2.0"
+   │            ━━━━━━━━━━━━━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ CDLA-Permissive-2.0 - Community Data License Agreement Permissive 2.0:
+   ├   - No additional metadata available for license
+   ├ webpki-root-certs v1.0.11
+     └── rustls-platform-verifier v0.7.1
+         ├── reqwest v0.13.5
+         │   ├── sigstore-rekor v0.6.6
+         │   │   ├── sigstore-bundle v0.6.6
+         │   │   │   └── sigstore-verify v0.6.6
+         │   │   │       └── (build) winprint v0.2.1
+         │   │   │           └── craft-print v0.1.0
+         │   │   │               └── wordcraft v0.18.1
+         │   │   └── sigstore-verify v0.6.6 (*)
+         │   ├── sigstore-tsa v0.6.6
+         │   │   ├── sigstore-bundle v0.6.6 (*)
+         │   │   └── sigstore-verify v0.6.6 (*)
+         │   └── (build) winprint v0.2.1 (*)
+         └── ureq v3.5.0
+             ├── craft-font-store v0.1.0
+             │   └── wordcraft-engine v0.18.1
+             │       ├── wordcraft v0.18.1 (*)
+             │       ├── wordcraft-cli v0.18.1
+             │       ├── wordcraft-mcp v0.18.1
+             │       │   └── wordcraft-cli v0.18.1 (*)
+             │       ├── wordcraft-ui-egui v0.18.1
+             │       │   ├── wordcraft v0.18.1 (*)
+             │       │   └── wordcraft-web v0.18.1
+             │       ├── wordcraft-web v0.18.1 (*)
+             │       └── wordcraft-zotero v0.18.1
+             │           ├── wordcraft-cli v0.18.1 (*)
+             │           └── wordcraft-ui-egui v0.18.1 (*)
+             └── craft-update v0.1.0
+                 ├── wordcraft v0.18.1 (*)
+                 └── wordcraft-ui-egui v0.18.1 (*)
+
+error[rejected]: failed to satisfy license requirements
+   ┌─ :26:12
+   │
+26 │ license = "CDLA-Permissive-2.0"
+   │            ━━━━━━━━━━━━━━━━━━━
+   │            │
+   │            rejected: license is not explicitly allowed
+   │
+   ├ CDLA-Permissive-2.0 - Community Data License Agreement Permissive 2.0:
+   ├   - No additional metadata available for license
+   ├ webpki-roots v1.0.11
+     └── ureq v3.5.0
+         ├── craft-font-store v0.1.0
+         │   └── wordcraft-engine v0.18.1
+         │       ├── wordcraft v0.18.1
+         │       ├── wordcraft-cli v0.18.1
+         │       ├── wordcraft-mcp v0.18.1
+         │       │   └── wordcraft-cli v0.18.1 (*)
+         │       ├── wordcraft-ui-egui v0.18.1
+         │       │   ├── wordcraft v0.18.1 (*)
+         │       │   └── wordcraft-web v0.18.1
+         │       ├── wordcraft-web v0.18.1 (*)
+         │       └── wordcraft-zotero v0.18.1
+         │           ├── wordcraft-cli v0.18.1 (*)
+         │           └── wordcraft-ui-egui v0.18.1 (*)
+         └── craft-update v0.1.0
+             ├── wordcraft v0.18.1 (*)
+             └── wordcraft-ui-egui v0.18.1 (*)
+
+warning[license-not-encountered]: license was not encountered
+   ┌─ :17:21
+   │
+17 │     "Unicode-3.0", "Unicode-DFS-2016", "CC0-1.0", "BSL-1.0", "0BSD", "OFL-1.1", "Unlicense",
+   │                     ━━━━━━━━━━━━━━━━ unmatched license allowance
+
+licenses FAILED

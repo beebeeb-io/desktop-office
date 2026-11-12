@@ -1,0 +1,434 @@
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+   ┌─ deckcraft/Cargo.lock:82:19
+   │
+82 │ craft-audio 0.1.0 git+https://github.com/storytold/craft-libs?rev=75895c0321d8cb6e175a42466cba050352b117c5
+   │                   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+   │
+   ├ craft-audio v0.1.0
+     └── deckcraft-media v0.18.1
+         ├── deckcraft v0.18.1
+         ├── deckcraft-engine v0.18.1
+         │   ├── deckcraft v0.18.1 (*)
+         │   ├── deckcraft-cli v0.18.1
+         │   ├── deckcraft-mcp v0.18.1
+         │   │   └── deckcraft-cli v0.18.1 (*)
+         │   ├── (dev) deckcraft-pptx v0.18.1
+         │   │   └── deckcraft-engine v0.18.1 (*)
+         │   ├── deckcraft-ui-egui v0.18.1
+         │   │   ├── deckcraft v0.18.1 (*)
+         │   │   └── deckcraft-web v0.18.1
+         │   └── deckcraft-web v0.18.1 (*)
+         └── deckcraft-ui-egui v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+   ┌─ deckcraft/Cargo.lock:83:25
+   │
+83 │ craft-fonts-build 0.1.0 git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b
+   │                         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+   │
+   ├ craft-fonts-build v0.1.0
+     └── craft-ui v0.1.0
+         └── deckcraft-ui-egui v0.18.1
+             ├── deckcraft v0.18.1
+             └── deckcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+   ┌─ deckcraft/Cargo.lock:84:18
+   │
+84 │ craft-i18n 0.1.0 git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b
+   │                  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+   │
+   ├ craft-i18n v0.1.0
+     └── craft-ui v0.1.0
+         └── deckcraft-ui-egui v0.18.1
+             ├── deckcraft v0.18.1
+             └── deckcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+   ┌─ deckcraft/Cargo.lock:85:19
+   │
+85 │ craft-media 0.1.0 git+https://github.com/storytold/craft-libs?rev=75895c0321d8cb6e175a42466cba050352b117c5
+   │                   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+   │
+   ├ craft-media v0.1.0
+     ├── craft-audio v0.1.0
+     │   └── deckcraft-media v0.18.1
+     │       ├── deckcraft v0.18.1
+     │       ├── deckcraft-engine v0.18.1
+     │       │   ├── deckcraft v0.18.1 (*)
+     │       │   ├── deckcraft-cli v0.18.1
+     │       │   ├── deckcraft-mcp v0.18.1
+     │       │   │   └── deckcraft-cli v0.18.1 (*)
+     │       │   ├── (dev) deckcraft-pptx v0.18.1
+     │       │   │   └── deckcraft-engine v0.18.1 (*)
+     │       │   ├── deckcraft-ui-egui v0.18.1
+     │       │   │   ├── deckcraft v0.18.1 (*)
+     │       │   │   └── deckcraft-web v0.18.1
+     │       │   └── deckcraft-web v0.18.1 (*)
+     │       └── deckcraft-ui-egui v0.18.1 (*)
+     ├── deckcraft-bitstream v0.18.1
+     │   ├── deckcraft-av1 v0.18.1
+     │   │   └── deckcraft-media v0.18.1 (*)
+     │   ├── deckcraft-h264 v0.18.1
+     │   │   └── deckcraft-media v0.18.1 (*)
+     │   ├── deckcraft-hevc v0.18.1
+     │   │   └── deckcraft-media v0.18.1 (*)
+     │   └── deckcraft-vp9 v0.18.1
+     │       └── deckcraft-media v0.18.1 (*)
+     └── deckcraft-media v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+   ┌─ deckcraft/Cargo.lock:86:17
+   │
+86 │ craft-pdf 0.1.0 git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b
+   │                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+   │
+   ├ craft-pdf v0.1.0
+     └── deckcraft-pdf v0.18.1
+         └── deckcraft-engine v0.18.1
+             ├── deckcraft v0.18.1
+             ├── deckcraft-cli v0.18.1
+             ├── deckcraft-mcp v0.18.1
+             │   └── deckcraft-cli v0.18.1 (*)
+             ├── (dev) deckcraft-pptx v0.18.1
+             │   └── deckcraft-engine v0.18.1 (*)
+             ├── deckcraft-ui-egui v0.18.1
+             │   ├── deckcraft v0.18.1 (*)
+             │   └── deckcraft-web v0.18.1
+             └── deckcraft-web v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+   ┌─ deckcraft/Cargo.lock:87:16
+   │
+87 │ craft-ui 0.1.0 git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b
+   │                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+   │
+   ├ craft-ui v0.1.0
+     └── deckcraft-ui-egui v0.18.1
+         ├── deckcraft v0.18.1
+         └── deckcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+   ┌─ deckcraft/Cargo.lock:88:20
+   │
+88 │ craft-update 0.1.0 git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b
+   │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+   │
+   ├ craft-update v0.1.0
+     ├── deckcraft v0.18.1
+     └── deckcraft-ui-egui v0.18.1
+         ├── deckcraft v0.18.1 (*)
+         └── deckcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+   ┌─ deckcraft/Cargo.lock:89:21
+   │
+89 │ craft-web-api 0.1.0 git+https://github.com/storytold/craft-libs?rev=fd5e2feff6ea25bed371a99cc732b3968d621505
+   │                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+   │
+   ├ craft-web-api v0.1.0
+     └── deckcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+   ┌─ deckcraft/Cargo.lock:90:22
+   │
+90 │ craft-web-host 0.1.0 git+https://github.com/storytold/craft-libs?rev=fd5e2feff6ea25bed371a99cc732b3968d621505
+   │                      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+   │
+   ├ craft-web-host v0.1.0
+     └── deckcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ deckcraft/Cargo.lock:135:15
+    │
+135 │ ecolor 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ ecolor v0.37.0
+      └── epaint v0.37.0
+          ├── craft-ui v0.1.0
+          │   └── deckcraft-ui-egui v0.18.1
+          │       ├── deckcraft v0.18.1
+          │       └── deckcraft-web v0.18.1
+          ├── egui v0.37.0
+          │   ├── craft-ui v0.1.0 (*)
+          │   ├── craft-update v0.1.0
+          │   │   ├── deckcraft v0.18.1 (*)
+          │   │   └── deckcraft-ui-egui v0.18.1 (*)
+          │   ├── deckcraft v0.18.1 (*)
+          │   ├── (dev) deckcraft-ui-egui v0.18.1 (*)
+          │   ├── deckcraft-web v0.18.1 (*)
+          │   ├── eframe v0.37.0
+          │   │   ├── deckcraft v0.18.1 (*)
+          │   │   └── deckcraft-web v0.18.1 (*)
+          │   ├── egui-wgpu v0.37.0
+          │   │   ├── eframe v0.37.0 (*)
+          │   │   └── egui_kittest v0.37.0
+          │   │       └── (dev) deckcraft-ui-egui v0.18.1 (*)
+          │   ├── egui-winit v0.37.0
+          │   │   └── eframe v0.37.0 (*)
+          │   ├── egui_extras v0.37.0
+          │   │   └── deckcraft-ui-egui v0.18.1 (*)
+          │   └── egui_kittest v0.37.0 (*)
+          └── egui-wgpu v0.37.0 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ deckcraft/Cargo.lock:136:15
+    │
+136 │ eframe 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ eframe v0.37.0
+      ├── deckcraft v0.18.1
+      └── deckcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ deckcraft/Cargo.lock:137:13
+    │
+137 │ egui 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ egui v0.37.0
+      ├── craft-ui v0.1.0
+      │   └── deckcraft-ui-egui v0.18.1
+      │       ├── deckcraft v0.18.1
+      │       └── deckcraft-web v0.18.1
+      ├── craft-update v0.1.0
+      │   ├── deckcraft v0.18.1 (*)
+      │   └── deckcraft-ui-egui v0.18.1 (*)
+      ├── deckcraft v0.18.1 (*)
+      ├── (dev) deckcraft-ui-egui v0.18.1 (*)
+      ├── deckcraft-web v0.18.1 (*)
+      ├── eframe v0.37.0
+      │   ├── deckcraft v0.18.1 (*)
+      │   └── deckcraft-web v0.18.1 (*)
+      ├── egui-wgpu v0.37.0
+      │   ├── eframe v0.37.0 (*)
+      │   └── egui_kittest v0.37.0
+      │       └── (dev) deckcraft-ui-egui v0.18.1 (*)
+      ├── egui-winit v0.37.0
+      │   └── eframe v0.37.0 (*)
+      ├── egui_extras v0.37.0
+      │   └── deckcraft-ui-egui v0.18.1 (*)
+      └── egui_kittest v0.37.0 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ deckcraft/Cargo.lock:138:18
+    │
+138 │ egui-wgpu 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │                  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ egui-wgpu v0.37.0
+      ├── eframe v0.37.0
+      │   ├── deckcraft v0.18.1
+      │   └── deckcraft-web v0.18.1
+      └── egui_kittest v0.37.0
+          └── (dev) deckcraft-ui-egui v0.18.1
+              ├── deckcraft v0.18.1 (*)
+              └── deckcraft-web v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ deckcraft/Cargo.lock:139:19
+    │
+139 │ egui-winit 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │                   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ egui-winit v0.37.0
+      └── eframe v0.37.0
+          ├── deckcraft v0.18.1
+          └── deckcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ deckcraft/Cargo.lock:140:20
+    │
+140 │ egui_extras 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ egui_extras v0.37.0
+      └── deckcraft-ui-egui v0.18.1
+          ├── deckcraft v0.18.1
+          └── deckcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ deckcraft/Cargo.lock:141:21
+    │
+141 │ egui_kittest 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ egui_kittest v0.37.0
+      └── (dev) deckcraft-ui-egui v0.18.1
+          ├── deckcraft v0.18.1
+          └── deckcraft-web v0.18.1
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ deckcraft/Cargo.lock:143:14
+    │
+143 │ emath 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ emath v0.37.0
+      ├── ecolor v0.37.0
+      │   └── epaint v0.37.0
+      │       ├── craft-ui v0.1.0
+      │       │   └── deckcraft-ui-egui v0.18.1
+      │       │       ├── deckcraft v0.18.1
+      │       │       └── deckcraft-web v0.18.1
+      │       ├── egui v0.37.0
+      │       │   ├── craft-ui v0.1.0 (*)
+      │       │   ├── craft-update v0.1.0
+      │       │   │   ├── deckcraft v0.18.1 (*)
+      │       │   │   └── deckcraft-ui-egui v0.18.1 (*)
+      │       │   ├── deckcraft v0.18.1 (*)
+      │       │   ├── (dev) deckcraft-ui-egui v0.18.1 (*)
+      │       │   ├── deckcraft-web v0.18.1 (*)
+      │       │   ├── eframe v0.37.0
+      │       │   │   ├── deckcraft v0.18.1 (*)
+      │       │   │   └── deckcraft-web v0.18.1 (*)
+      │       │   ├── egui-wgpu v0.37.0
+      │       │   │   ├── eframe v0.37.0 (*)
+      │       │   │   └── egui_kittest v0.37.0
+      │       │   │       └── (dev) deckcraft-ui-egui v0.18.1 (*)
+      │       │   ├── egui-winit v0.37.0
+      │       │   │   └── eframe v0.37.0 (*)
+      │       │   ├── egui_extras v0.37.0
+      │       │   │   └── deckcraft-ui-egui v0.18.1 (*)
+      │       │   └── egui_kittest v0.37.0 (*)
+      │       └── egui-wgpu v0.37.0 (*)
+      ├── egui v0.37.0 (*)
+      └── epaint v0.37.0 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ deckcraft/Cargo.lock:150:15
+    │
+150 │ epaint 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ epaint v0.37.0
+      ├── craft-ui v0.1.0
+      │   └── deckcraft-ui-egui v0.18.1
+      │       ├── deckcraft v0.18.1
+      │       └── deckcraft-web v0.18.1
+      ├── egui v0.37.0
+      │   ├── craft-ui v0.1.0 (*)
+      │   ├── craft-update v0.1.0
+      │   │   ├── deckcraft v0.18.1 (*)
+      │   │   └── deckcraft-ui-egui v0.18.1 (*)
+      │   ├── deckcraft v0.18.1 (*)
+      │   ├── (dev) deckcraft-ui-egui v0.18.1 (*)
+      │   ├── deckcraft-web v0.18.1 (*)
+      │   ├── eframe v0.37.0
+      │   │   ├── deckcraft v0.18.1 (*)
+      │   │   └── deckcraft-web v0.18.1 (*)
+      │   ├── egui-wgpu v0.37.0
+      │   │   ├── eframe v0.37.0 (*)
+      │   │   └── egui_kittest v0.37.0
+      │   │       └── (dev) deckcraft-ui-egui v0.18.1 (*)
+      │   ├── egui-winit v0.37.0
+      │   │   └── eframe v0.37.0 (*)
+      │   ├── egui_extras v0.37.0
+      │   │   └── deckcraft-ui-egui v0.18.1 (*)
+      │   └── egui_kittest v0.37.0 (*)
+      └── egui-wgpu v0.37.0 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ deckcraft/Cargo.lock:151:29
+    │
+151 │ epaint_default_fonts 0.37.0 git+https://github.com/storytold/egui.git?rev=6d518fc799681571963842f95b55a6b68431b15a
+    │                             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ epaint_default_fonts v0.37.0
+      ├── deckcraft-fonts v0.18.1
+      │   ├── deckcraft-engine v0.18.1
+      │   │   ├── deckcraft v0.18.1
+      │   │   ├── deckcraft-cli v0.18.1
+      │   │   ├── deckcraft-mcp v0.18.1
+      │   │   │   └── deckcraft-cli v0.18.1 (*)
+      │   │   ├── (dev) deckcraft-pptx v0.18.1
+      │   │   │   └── deckcraft-engine v0.18.1 (*)
+      │   │   ├── deckcraft-ui-egui v0.18.1
+      │   │   │   ├── deckcraft v0.18.1 (*)
+      │   │   │   └── deckcraft-web v0.18.1
+      │   │   └── deckcraft-web v0.18.1 (*)
+      │   ├── deckcraft-pdf v0.18.1
+      │   │   └── deckcraft-engine v0.18.1 (*)
+      │   ├── deckcraft-render v0.18.1
+      │   │   ├── deckcraft-engine v0.18.1 (*)
+      │   │   ├── deckcraft-mcp v0.18.1 (*)
+      │   │   ├── deckcraft-pdf v0.18.1 (*)
+      │   │   └── deckcraft-ui-egui v0.18.1 (*)
+      │   ├── deckcraft-text v0.18.1
+      │   │   ├── deckcraft-engine v0.18.1 (*)
+      │   │   ├── deckcraft-pdf v0.18.1 (*)
+      │   │   ├── deckcraft-render v0.18.1 (*)
+      │   │   └── deckcraft-ui-egui v0.18.1 (*)
+      │   └── deckcraft-ui-egui v0.18.1 (*)
+      └── epaint v0.37.0
+          ├── craft-ui v0.1.0
+          │   └── deckcraft-ui-egui v0.18.1 (*)
+          ├── egui v0.37.0
+          │   ├── craft-ui v0.1.0 (*)
+          │   ├── craft-update v0.1.0
+          │   │   ├── deckcraft v0.18.1 (*)
+          │   │   └── deckcraft-ui-egui v0.18.1 (*)
+          │   ├── deckcraft v0.18.1 (*)
+          │   ├── (dev) deckcraft-ui-egui v0.18.1 (*)
+          │   ├── deckcraft-web v0.18.1 (*)
+          │   ├── eframe v0.37.0
+          │   │   ├── deckcraft v0.18.1 (*)
+          │   │   └── deckcraft-web v0.18.1 (*)
+          │   ├── egui-wgpu v0.37.0
+          │   │   ├── eframe v0.37.0 (*)
+          │   │   └── egui_kittest v0.37.0
+          │   │       └── (dev) deckcraft-ui-egui v0.18.1 (*)
+          │   ├── egui-winit v0.37.0
+          │   │   └── eframe v0.37.0 (*)
+          │   ├── egui_extras v0.37.0
+          │   │   └── deckcraft-ui-egui v0.18.1 (*)
+          │   └── egui_kittest v0.37.0 (*)
+          └── egui-wgpu v0.37.0 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ deckcraft/Cargo.lock:249:14
+    │
+249 │ krilla 0.8.2 git+https://github.com/storytold/craft-libs?rev=6e03f65bf45181db77ba6229716e6624db9eb25b
+    │              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ krilla v0.8.2
+      ├── craft-pdf v0.1.0
+      │   └── deckcraft-pdf v0.18.1
+      │       └── deckcraft-engine v0.18.1
+      │           ├── deckcraft v0.18.1
+      │           ├── deckcraft-cli v0.18.1
+      │           ├── deckcraft-mcp v0.18.1
+      │           │   └── deckcraft-cli v0.18.1 (*)
+      │           ├── (dev) deckcraft-pptx v0.18.1
+      │           │   └── deckcraft-engine v0.18.1 (*)
+      │           ├── deckcraft-ui-egui v0.18.1
+      │           │   ├── deckcraft v0.18.1 (*)
+      │           │   └── deckcraft-web v0.18.1
+      │           └── deckcraft-web v0.18.1 (*)
+      └── deckcraft-pdf v0.18.1 (*)
+
+error[source-not-allowed]: detected 'git' source not explicitly allowed
+    ┌─ deckcraft/Cargo.lock:560:15
+    │
+560 │ winit 0.30.13 git+https://github.com/storytold/winit.git?rev=a517b3846ee8457d84ee4975110bfda6797c44dc
+    │               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ source
+    │
+    ├ winit v0.30.13
+      ├── accesskit_winit v0.34.1
+      │   └── egui-winit v0.37.0
+      │       └── eframe v0.37.0
+      │           ├── deckcraft v0.18.1
+      │           └── deckcraft-web v0.18.1
+      ├── deckcraft v0.18.1 (*)
+      ├── eframe v0.37.0 (*)
+      ├── egui-wgpu v0.37.0
+      │   ├── eframe v0.37.0 (*)
+      │   └── egui_kittest v0.37.0
+      │       └── (dev) deckcraft-ui-egui v0.18.1
+      │           ├── deckcraft v0.18.1 (*)
+      │           └── deckcraft-web v0.18.1 (*)
+      └── egui-winit v0.37.0 (*)
+
+sources FAILED

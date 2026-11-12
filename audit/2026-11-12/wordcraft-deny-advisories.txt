@@ -1,0 +1,584 @@
+error[unmaintained]: proc-macro-error is unmaintained
+    ┌─ wordcraft/Cargo.lock:368:1
+    │
+368 │ proc-macro-error 1.0.4 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2024-0370
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2024-0370
+    ├ proc-macro-error's maintainer seems to be unreachable, with no commits for 2 years, no releases pushed for 4 years, and no activity on the GitLab repo or response to email.
+      
+      proc-macro-error also depends on `syn 1.x`, which may be bringing duplicate dependencies into dependant build trees.
+      
+      ## Possible Alternative(s)
+      
+      - [manyhow](https://crates.io/crates/manyhow)
+      - [proc-macro2-diagnostics](https://github.com/SergioBenitez/proc-macro2-diagnostics)
+    ├ Announcement: https://gitlab.com/CreepySkeleton/proc-macro-error/-/issues/20
+    ├ Solution: No safe upgrade is available!
+    ├ proc-macro-error v1.0.4
+      └── fmt-derive-proc v0.1.2
+          └── fmt-derive v0.1.2
+              └── winprint v0.2.1
+                  └── craft-print v0.1.0
+                      └── wordcraft v0.18.1
+
+error[unsound]: xattr functions mark unwritten bytes as initialized when given a zero-length buffer
+    ┌─ wordcraft/Cargo.lock:409:1
+    │
+409 │ rustix 1.1.5 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unsound advisory detected
+    │
+    ├ ID: RUSTSEC-2026-0486
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0486
+    ├ The extended-attribute functions in `rustix::fs` (`getxattr`, `lgetxattr`, `fgetxattr`, `listxattr`, `llistxattr` and `flistxattr`) write into a `Buffer` and then mark as many bytes initialized as the system call reported. When the buffer has zero length, the operating system treats the call as a size query: it writes nothing and returns the size of the attribute value or of the name list. rustix still marked that many bytes as initialized.
+      
+      Passing a `Vec` whose length equals its capacity through `spare_capacity` gives such a zero-length buffer, and rustix then set the vector's length past its capacity over memory that was never written. This is undefined behavior reachable from safe code. With an empty `&mut [MaybeUninit<u8>]` the call panics instead.
+      
+      From 1.1.6 these functions return an empty result for a zero-length buffer, and new `getxattr_query`, `lgetxattr_query`, `fgetxattr_query`, `listxattr_query`, `llistxattr_query` and `flistxattr_query` functions return the size. The 0.38 series did not have the `Buffer` API and is not affected.
+    ├ Announcement: https://github.com/bytecodealliance/rustix/commit/8e6aaa6713d2bb64b1fdd8c472e3a32a10a76d70
+    ├ Solution: Upgrade to >=1.1.6 (try `cargo update -p rustix`)
+    ├ rustix v1.1.5
+      ├── async-io v2.6.0
+      │   ├── async-process v2.5.0
+      │   │   └── zbus v5.19.0
+      │   │       ├── accesskit_unix v0.24.0
+      │   │       │   └── accesskit_winit v0.34.1
+      │   │       │       └── egui-winit v0.37.0
+      │   │       │           └── eframe v0.37.0
+      │   │       │               ├── wordcraft v0.18.1
+      │   │       │               └── wordcraft-web v0.18.1
+      │   │       ├── atspi-common v0.13.0
+      │   │       │   ├── accesskit_atspi_common v0.21.0
+      │   │       │   │   └── accesskit_unix v0.24.0 (*)
+      │   │       │   ├── atspi v0.29.0
+      │   │       │   │   └── accesskit_unix v0.24.0 (*)
+      │   │       │   └── atspi-proxies v0.13.0
+      │   │       │       └── atspi v0.29.0 (*)
+      │   │       ├── atspi-proxies v0.13.0 (*)
+      │   │       ├── wordcraft v0.18.1 (*)
+      │   │       └── wordcraft-ui-egui v0.18.1
+      │   │           ├── wordcraft v0.18.1 (*)
+      │   │           └── wordcraft-web v0.18.1 (*)
+      │   ├── async-signal v0.2.14
+      │   │   └── async-process v2.5.0 (*)
+      │   └── zbus v5.19.0 (*)
+      ├── async-process v2.5.0 (*)
+      ├── async-signal v0.2.14 (*)
+      ├── calloop v0.14.5
+      │   ├── calloop-wayland-source v0.4.1
+      │   │   └── smithay-client-toolkit v0.20.0
+      │   │       └── smithay-clipboard v0.7.3
+      │   │           └── egui-winit v0.37.0 (*)
+      │   └── smithay-client-toolkit v0.20.0 (*)
+      ├── calloop-wayland-source v0.4.1 (*)
+      ├── craft-atomic v0.1.0
+      │   └── craft-font-store v0.1.0
+      │       └── wordcraft-engine v0.18.1
+      │           ├── wordcraft v0.18.1 (*)
+      │           ├── wordcraft-cli v0.18.1
+      │           ├── wordcraft-mcp v0.18.1
+      │           │   └── wordcraft-cli v0.18.1 (*)
+      │           ├── wordcraft-ui-egui v0.18.1 (*)
+      │           ├── wordcraft-web v0.18.1 (*)
+      │           └── wordcraft-zotero v0.18.1
+      │               ├── wordcraft-cli v0.18.1 (*)
+      │               └── wordcraft-ui-egui v0.18.1 (*)
+      ├── craft-update v0.1.0
+      │   ├── wordcraft v0.18.1 (*)
+      │   └── wordcraft-ui-egui v0.18.1 (*)
+      ├── gethostname v1.1.0
+      │   └── x11rb v0.13.2
+      │       ├── arboard v3.7.0
+      │       │   ├── egui-winit v0.37.0 (*)
+      │       │   └── wordcraft v0.18.1 (*)
+      │       ├── winit v0.30.13
+      │       │   ├── accesskit_winit v0.34.1 (*)
+      │       │   ├── eframe v0.37.0 (*)
+      │       │   ├── egui-wgpu v0.37.0
+      │       │   │   ├── eframe v0.37.0 (*)
+      │       │   │   └── egui_kittest v0.37.0
+      │       │   │       └── (dev) wordcraft-ui-egui v0.18.1 (*)
+      │       │   ├── egui-winit v0.37.0 (*)
+      │       │   └── wordcraft v0.18.1 (*)
+      │       └── wordcraft v0.18.1 (*)
+      ├── polling v3.11.0
+      │   ├── async-io v2.6.0 (*)
+      │   ├── calloop v0.13.0
+      │   │   ├── calloop-wayland-source v0.3.0
+      │   │   │   └── smithay-client-toolkit v0.19.2
+      │   │   │       └── winit v0.30.13 (*)
+      │   │   ├── smithay-client-toolkit v0.19.2 (*)
+      │   │   └── winit v0.30.13 (*)
+      │   └── calloop v0.14.5 (*)
+      ├── smithay-client-toolkit v0.20.0 (*)
+      ├── tempfile v3.27.0
+      │   ├── craft-print v0.1.0
+      │   │   └── wordcraft v0.18.1 (*)
+      │   ├── craft-update v0.1.0 (*)
+      │   ├── egui_kittest v0.37.0 (*)
+      │   ├── proptest v1.12.0
+      │   │   ├── (dev) wordcraft-doc v0.18.1
+      │   │   │   ├── wordcraft v0.18.1 (*)
+      │   │   │   ├── wordcraft-cli v0.18.1 (*)
+      │   │   │   ├── wordcraft-docbin v0.18.1
+      │   │   │   │   └── wordcraft-engine v0.18.1 (*)
+      │   │   │   ├── wordcraft-docx v0.18.1
+      │   │   │   │   ├── wordcraft-engine v0.18.1 (*)
+      │   │   │   │   └── (dev) wordcraft-zotero v0.18.1 (*)
+      │   │   │   ├── wordcraft-engine v0.18.1 (*)
+      │   │   │   ├── wordcraft-formats v0.18.1
+      │   │   │   │   ├── wordcraft-engine v0.18.1 (*)
+      │   │   │   │   └── wordcraft-zotero v0.18.1 (*)
+      │   │   │   ├── wordcraft-layout v0.18.1
+      │   │   │   │   ├── wordcraft-engine v0.18.1 (*)
+      │   │   │   │   ├── wordcraft-pdf v0.18.1
+      │   │   │   │   │   └── wordcraft-engine v0.18.1 (*)
+      │   │   │   │   ├── wordcraft-render v0.18.1
+      │   │   │   │   │   ├── wordcraft-cli v0.18.1 (*)
+      │   │   │   │   │   ├── wordcraft-engine v0.18.1 (*)
+      │   │   │   │   │   ├── wordcraft-mcp v0.18.1 (*)
+      │   │   │   │   │   └── wordcraft-ui-egui v0.18.1 (*)
+      │   │   │   │   └── wordcraft-ui-egui v0.18.1 (*)
+      │   │   │   ├── wordcraft-mcp v0.18.1 (*)
+      │   │   │   ├── wordcraft-pdf v0.18.1 (*)
+      │   │   │   ├── wordcraft-render v0.18.1 (*)
+      │   │   │   ├── wordcraft-ui-egui v0.18.1 (*)
+      │   │   │   ├── wordcraft-web v0.18.1 (*)
+      │   │   │   └── wordcraft-zotero v0.18.1 (*)
+      │   │   ├── (dev) wordcraft-docbin v0.18.1 (*)
+      │   │   ├── (dev) wordcraft-docx v0.18.1 (*)
+      │   │   ├── (dev) wordcraft-formats v0.18.1 (*)
+      │   │   └── (dev) wordcraft-zotero v0.18.1 (*)
+      │   ├── rusty-fork v0.3.1
+      │   │   └── proptest v1.12.0 (*)
+      │   ├── uds_windows v1.2.1
+      │   │   └── zbus v5.19.0 (*)
+      │   └── wordcraft v0.18.1 (*)
+      ├── wayland-backend v0.3.17
+      │   ├── calloop-wayland-source v0.3.0 (*)
+      │   ├── calloop-wayland-source v0.4.1 (*)
+      │   ├── rfd v0.17.2
+      │   │   ├── wordcraft v0.18.1 (*)
+      │   │   └── wordcraft-web v0.18.1 (*)
+      │   ├── smithay-client-toolkit v0.19.2 (*)
+      │   ├── smithay-client-toolkit v0.20.0 (*)
+      │   ├── smithay-clipboard v0.7.3 (*)
+      │   ├── wayland-client v0.31.15
+      │   │   ├── calloop-wayland-source v0.3.0 (*)
+      │   │   ├── calloop-wayland-source v0.4.1 (*)
+      │   │   ├── craft-window v0.1.0
+      │   │   │   └── wordcraft-ui-egui v0.18.1 (*)
+      │   │   ├── rfd v0.17.2 (*)
+      │   │   ├── smithay-client-toolkit v0.19.2 (*)
+      │   │   ├── smithay-client-toolkit v0.20.0 (*)
+      │   │   ├── wayland-cursor v0.31.14
+      │   │   │   ├── smithay-client-toolkit v0.19.2 (*)
+      │   │   │   └── smithay-client-toolkit v0.20.0 (*)
+      │   │   ├── wayland-protocols v0.32.13
+      │   │   │   ├── rfd v0.17.2 (*)
+      │   │   │   ├── smithay-client-toolkit v0.19.2 (*)
+      │   │   │   ├── smithay-client-toolkit v0.20.0 (*)
+      │   │   │   ├── wayland-protocols-experimental v20250721.0.1
+      │   │   │   │   └── smithay-client-toolkit v0.20.0 (*)
+      │   │   │   ├── wayland-protocols-misc v0.3.12
+      │   │   │   │   └── smithay-client-toolkit v0.20.0 (*)
+      │   │   │   ├── wayland-protocols-plasma v0.3.12
+      │   │   │   │   └── winit v0.30.13 (*)
+      │   │   │   ├── wayland-protocols-wlr v0.3.12
+      │   │   │   │   ├── smithay-client-toolkit v0.19.2 (*)
+      │   │   │   │   ├── smithay-client-toolkit v0.20.0 (*)
+      │   │   │   │   └── wl-clipboard-rs v0.9.4
+      │   │   │   │       ├── arboard v3.7.0 (*)
+      │   │   │   │       └── wordcraft v0.18.1 (*)
+      │   │   │   ├── winit v0.30.13 (*)
+      │   │   │   └── wl-clipboard-rs v0.9.4 (*)
+      │   │   ├── wayland-protocols-experimental v20250721.0.1 (*)
+      │   │   ├── wayland-protocols-misc v0.3.12 (*)
+      │   │   ├── wayland-protocols-plasma v0.3.12 (*)
+      │   │   ├── wayland-protocols-wlr v0.3.12 (*)
+      │   │   ├── winit v0.30.13 (*)
+      │   │   └── wl-clipboard-rs v0.9.4 (*)
+      │   ├── wayland-csd-frame v0.3.0
+      │   │   ├── smithay-client-toolkit v0.19.2 (*)
+      │   │   └── smithay-client-toolkit v0.20.0 (*)
+      │   ├── wayland-protocols v0.32.13 (*)
+      │   ├── wayland-protocols-experimental v20250721.0.1 (*)
+      │   ├── wayland-protocols-misc v0.3.12 (*)
+      │   ├── wayland-protocols-plasma v0.3.12 (*)
+      │   ├── wayland-protocols-wlr v0.3.12 (*)
+      │   ├── winit v0.30.13 (*)
+      │   └── wl-clipboard-rs v0.9.4 (*)
+      ├── wayland-client v0.31.15 (*)
+      ├── wayland-cursor v0.31.14 (*)
+      ├── wl-clipboard-rs v0.9.4 (*)
+      ├── wordcraft-engine v0.18.1 (*)
+      ├── x11rb v0.13.2 (*)
+      ├── xattr v1.6.1
+      │   └── tar v0.4.46
+      │       ├── craft-font-store v0.1.0 (*)
+      │       ├── craft-update v0.1.0 (*)
+      │       └── (build) winprint v0.2.1
+      │           └── craft-print v0.1.0 (*)
+      └── zbus v5.19.0 (*)
+
+error[unmaintained]: `zbus_names` is unmaintained
+    ┌─ wordcraft/Cargo.lock:655:1
+    │
+655 │ zbus_names 4.3.4 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2026-0371
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0371
+    ├ The `zbus_names` crate is no longer maintained as a standalone crate.
+      
+      It has been merged into [`zbus`](https://crates.io/crates/zbus) starting with version `6.0.0`, as its `names` module.
+      
+      Users should migrate to [`zbus`](https://crates.io/crates/zbus), with its default features disabled if they only need the D-Bus name types.
+    ├ Announcement: https://github.com/z-galaxy/zbus/issues/2043
+    ├ Solution: No safe upgrade is available!
+    ├ zbus_names v4.3.4
+      ├── atspi-common v0.13.0
+      │   ├── accesskit_atspi_common v0.21.0
+      │   │   └── accesskit_unix v0.24.0
+      │   │       └── accesskit_winit v0.34.1
+      │   │           └── egui-winit v0.37.0
+      │   │               └── eframe v0.37.0
+      │   │                   ├── wordcraft v0.18.1
+      │   │                   └── wordcraft-web v0.18.1
+      │   ├── atspi v0.29.0
+      │   │   └── accesskit_unix v0.24.0 (*)
+      │   └── atspi-proxies v0.13.0
+      │       └── atspi v0.29.0 (*)
+      ├── zbus v5.19.0
+      │   ├── accesskit_unix v0.24.0 (*)
+      │   ├── atspi-common v0.13.0 (*)
+      │   ├── atspi-proxies v0.13.0 (*)
+      │   ├── wordcraft v0.18.1 (*)
+      │   └── wordcraft-ui-egui v0.18.1
+      │       ├── wordcraft v0.18.1 (*)
+      │       └── wordcraft-web v0.18.1 (*)
+      ├── zbus_macros v5.19.0
+      │   └── zbus v5.19.0 (*)
+      └── zbus_xml v5.2.1
+          ├── zbus-lockstep v0.5.2
+          │   ├── atspi-common v0.13.0 (*)
+          │   └── zbus-lockstep-macros v0.5.2
+          │       └── atspi-common v0.13.0 (*)
+          └── zbus-lockstep-macros v0.5.2 (*)
+
+error[vulnerability]:  Insecure Preservation of SUID/SGID Bits during ZIP Extraction Leading to Potential Privilege Escalation
+    ┌─ wordcraft/Cargo.lock:667:1
+    │
+667 │ zip 3.0.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0367
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0367
+    ├ The `zip` crate preserves privileged Unix permission bits (SUID, SGID, and sticky bits) from ZIP `external_attributes` during extraction, instead of masking them to safe permission bits. If a privileged process (for example, `root` in an installer, CI/CD pipeline, or container build) extracts an attacker-controlled ZIP archive using `ZipArchive::extract()` or the stream extraction API, files can be created as setuid-root or setgid. This behavior allows the creation of SUID/SGID files during extraction, which can lead to local privilege escalation depending on the execution environment.
+      
+      For further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-vv5m-jxxh-4627
+    ├ Solution: Upgrade to >=9.0.0 (try `cargo update -p zip`)
+    ├ zip v3.0.0
+      ├── (dev) wordcraft-cli v0.18.1
+      ├── (dev) wordcraft-docx v0.18.1
+      │   ├── wordcraft-engine v0.18.1
+      │   │   ├── wordcraft v0.18.1
+      │   │   ├── wordcraft-cli v0.18.1 (*)
+      │   │   ├── wordcraft-mcp v0.18.1
+      │   │   │   └── wordcraft-cli v0.18.1 (*)
+      │   │   ├── wordcraft-ui-egui v0.18.1
+      │   │   │   ├── wordcraft v0.18.1 (*)
+      │   │   │   └── wordcraft-web v0.18.1
+      │   │   ├── wordcraft-web v0.18.1 (*)
+      │   │   └── wordcraft-zotero v0.18.1
+      │   │       ├── wordcraft-cli v0.18.1 (*)
+      │   │       └── wordcraft-ui-egui v0.18.1 (*)
+      │   └── (dev) wordcraft-zotero v0.18.1 (*)
+      ├── (dev) wordcraft-engine v0.18.1 (*)
+      ├── wordcraft-formats v0.18.1
+      │   ├── wordcraft-engine v0.18.1 (*)
+      │   └── wordcraft-zotero v0.18.1 (*)
+      └── (dev) wordcraft-ui-egui v0.18.1 (*)
+
+error[vulnerability]: zip: `ZipArchive::extract` creates symbolic links whose attacker-controlled targets are outside the destination directory
+    ┌─ wordcraft/Cargo.lock:667:1
+    │
+667 │ zip 3.0.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0368
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0368
+    ├ In `zip` 9.0.0-pre2, `ZipArchive::extract` creates a symbolic link from an archive entry after validating only the output entry path. The link target bytes are passed directly to the platform symlink API, so a malicious archive can create an entry inside the destination that resolves to an attacker-chosen path outside it. This behavior was verified on macOS and Linux. On either platform, a subsequent application read or write through that extracted entry accesses the external target with the extracting process's permissions.
+      
+      For further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-4v9h-p7m9-rh26
+    ├ Solution: Upgrade to >=9.0.0 (try `cargo update -p zip`)
+    ├ zip v3.0.0
+      ├── (dev) wordcraft-cli v0.18.1
+      ├── (dev) wordcraft-docx v0.18.1
+      │   ├── wordcraft-engine v0.18.1
+      │   │   ├── wordcraft v0.18.1
+      │   │   ├── wordcraft-cli v0.18.1 (*)
+      │   │   ├── wordcraft-mcp v0.18.1
+      │   │   │   └── wordcraft-cli v0.18.1 (*)
+      │   │   ├── wordcraft-ui-egui v0.18.1
+      │   │   │   ├── wordcraft v0.18.1 (*)
+      │   │   │   └── wordcraft-web v0.18.1
+      │   │   ├── wordcraft-web v0.18.1 (*)
+      │   │   └── wordcraft-zotero v0.18.1
+      │   │       ├── wordcraft-cli v0.18.1 (*)
+      │   │       └── wordcraft-ui-egui v0.18.1 (*)
+      │   └── (dev) wordcraft-zotero v0.18.1 (*)
+      ├── (dev) wordcraft-engine v0.18.1 (*)
+      ├── wordcraft-formats v0.18.1
+      │   ├── wordcraft-engine v0.18.1 (*)
+      │   └── wordcraft-zotero v0.18.1 (*)
+      └── (dev) wordcraft-ui-egui v0.18.1 (*)
+
+error[vulnerability]: ZipStreamReader::extract() and ZipArchive::extract() apply Unix permissions through symlinks without confining the target
+    ┌─ wordcraft/Cargo.lock:667:1
+    │
+667 │ zip 3.0.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0369
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0369
+    ├ `ZipStreamReader::extract()` applies Unix permissions through extracted symlinks without validating the symlink target stays within the destination
+      
+      For further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-4684-h2q9-2vcp
+    ├ Solution: Upgrade to >=9.0.0 (try `cargo update -p zip`)
+    ├ zip v3.0.0
+      ├── (dev) wordcraft-cli v0.18.1
+      ├── (dev) wordcraft-docx v0.18.1
+      │   ├── wordcraft-engine v0.18.1
+      │   │   ├── wordcraft v0.18.1
+      │   │   ├── wordcraft-cli v0.18.1 (*)
+      │   │   ├── wordcraft-mcp v0.18.1
+      │   │   │   └── wordcraft-cli v0.18.1 (*)
+      │   │   ├── wordcraft-ui-egui v0.18.1
+      │   │   │   ├── wordcraft v0.18.1 (*)
+      │   │   │   └── wordcraft-web v0.18.1
+      │   │   ├── wordcraft-web v0.18.1 (*)
+      │   │   └── wordcraft-zotero v0.18.1
+      │   │       ├── wordcraft-cli v0.18.1 (*)
+      │   │       └── wordcraft-ui-egui v0.18.1 (*)
+      │   └── (dev) wordcraft-zotero v0.18.1 (*)
+      ├── (dev) wordcraft-engine v0.18.1 (*)
+      ├── wordcraft-formats v0.18.1
+      │   ├── wordcraft-engine v0.18.1 (*)
+      │   └── wordcraft-zotero v0.18.1 (*)
+      └── (dev) wordcraft-ui-egui v0.18.1 (*)
+
+error[vulnerability]: zip: `ZipArchive::extract` aborts the process on a symlink entry with a large declared size
+    ┌─ wordcraft/Cargo.lock:667:1
+    │
+667 │ zip 3.0.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ security vulnerability detected
+    │
+    ├ ID: RUSTSEC-2026-0429
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0429
+    ├ `ZipArchive::extract()` sizes the symlink-target buffer from the uncompressed
+      size declared in the central directory record, before reading a single byte of
+      entry data:
+      
+      ```rust
+      let mut target = Vec::with_capacity(file.size() as usize);
+      ```
+      
+      Both inputs are attacker-controlled. `ZipFile::size()` returns
+      `uncompressed_size` verbatim from the central directory, widened to a full `u64`
+      by a ZIP64 extended-information extra field, and is never cross-checked against
+      the compressed size, the remaining archive length, or any platform-appropriate
+      bound for a symlink target. `ZipFile::is_symlink()` is decided entirely by the
+      `S_IFLNK` bit of the external-attributes field.
+      
+      `Vec::with_capacity()` is infallible: when the reservation is refused it calls
+      `handle_alloc_error()` and aborts the process. This is not a Rust panic. It is
+      not caught by `catch_unwind()`, is unaffected by `panic = "unwind"`, and is not
+      contained by running the call on a worker thread.
+      
+      A 112-byte archive is sufficient. One `Stored` entry flagged `S_IFLNK` with a
+      ZIP64 field declaring `uncompressed_size = 2^62` and a zero-byte payload makes
+      `extract()` fail with:
+      
+      ```
+      memory allocation of 4611686018427387904 bytes failed
+      Aborted (core dumped)          # exit 134
+      ```
+      
+      The declared value only needs to exceed the host's address space, not its RAM:
+      `Vec::with_capacity()` maps address space without touching pages, so resident
+      memory stays flat and the abort happens on the refused reservation itself. Under
+      a `ulimit -v` cap or a memory-constrained container the threshold drops far
+      enough that a plain 32-bit `uncompressed_size` with no ZIP64 field suffices.
+      
+      Applications that extract archives from untrusted input are affected on Unix and
+      Windows targets with default features and no special configuration: upload
+      handling, mail-attachment processing, package and artefact ingestion, backup
+      restore and container-image layer extraction. No confidentiality or integrity
+      property is affected: there is no memory unsafety, no out-of-bounds access, no
+      disclosure and no data corruption.
+      
+      The fix landed in [zip-rs/zip2#984](https://github.com/zip-rs/zip2/pull/984) and
+      shipped in 9.0.0.
+      
+      For further details see: https://github.com/zip-rs/zip2/security/advisories/GHSA-q7v9-x93c-xqv3
+    ├ Solution: Upgrade to >=9.0.0 (try `cargo update -p zip`)
+    ├ zip v3.0.0
+      ├── (dev) wordcraft-cli v0.18.1
+      ├── (dev) wordcraft-docx v0.18.1
+      │   ├── wordcraft-engine v0.18.1
+      │   │   ├── wordcraft v0.18.1
+      │   │   ├── wordcraft-cli v0.18.1 (*)
+      │   │   ├── wordcraft-mcp v0.18.1
+      │   │   │   └── wordcraft-cli v0.18.1 (*)
+      │   │   ├── wordcraft-ui-egui v0.18.1
+      │   │   │   ├── wordcraft v0.18.1 (*)
+      │   │   │   └── wordcraft-web v0.18.1
+      │   │   ├── wordcraft-web v0.18.1 (*)
+      │   │   └── wordcraft-zotero v0.18.1
+      │   │       ├── wordcraft-cli v0.18.1 (*)
+      │   │       └── wordcraft-ui-egui v0.18.1 (*)
+      │   └── (dev) wordcraft-zotero v0.18.1 (*)
+      ├── (dev) wordcraft-engine v0.18.1 (*)
+      ├── wordcraft-formats v0.18.1
+      │   ├── wordcraft-engine v0.18.1 (*)
+      │   └── wordcraft-zotero v0.18.1 (*)
+      └── (dev) wordcraft-ui-egui v0.18.1 (*)
+
+error[unmaintained]: `zvariant` is unmaintained
+    ┌─ wordcraft/Cargo.lock:674:1
+    │
+674 │ zvariant 5.15.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2026-0370
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0370
+    ├ The `zvariant` crate is no longer maintained as a standalone crate.
+      
+      It has been merged into [`zbus`](https://crates.io/crates/zbus) starting with version `6.0.0`, as its `wire` module.
+      
+      Users should migrate to [`zbus`](https://crates.io/crates/zbus), with its default features disabled if they only need the D-Bus wire format. Users of the GVariant format should migrate to [`zgvariant`](https://crates.io/crates/zgvariant).
+    ├ Announcement: https://github.com/z-galaxy/zbus/issues/2043
+    ├ Solution: No safe upgrade is available!
+    ├ zvariant v5.15.0
+      ├── accesskit_atspi_common v0.21.0
+      │   └── accesskit_unix v0.24.0
+      │       └── accesskit_winit v0.34.1
+      │           └── egui-winit v0.37.0
+      │               └── eframe v0.37.0
+      │                   ├── wordcraft v0.18.1
+      │                   └── wordcraft-web v0.18.1
+      ├── atspi-common v0.13.0
+      │   ├── accesskit_atspi_common v0.21.0 (*)
+      │   ├── atspi v0.29.0
+      │   │   └── accesskit_unix v0.24.0 (*)
+      │   └── atspi-proxies v0.13.0
+      │       └── atspi v0.29.0 (*)
+      ├── zbus v5.19.0
+      │   ├── accesskit_unix v0.24.0 (*)
+      │   ├── atspi-common v0.13.0 (*)
+      │   ├── atspi-proxies v0.13.0 (*)
+      │   ├── wordcraft v0.18.1 (*)
+      │   └── wordcraft-ui-egui v0.18.1
+      │       ├── wordcraft v0.18.1 (*)
+      │       └── wordcraft-web v0.18.1 (*)
+      ├── zbus-lockstep v0.5.2
+      │   ├── atspi-common v0.13.0 (*)
+      │   └── zbus-lockstep-macros v0.5.2
+      │       └── atspi-common v0.13.0 (*)
+      ├── zbus-lockstep-macros v0.5.2 (*)
+      ├── zbus_macros v5.19.0
+      │   └── zbus v5.19.0 (*)
+      ├── zbus_names v4.3.4
+      │   ├── atspi-common v0.13.0 (*)
+      │   ├── zbus v5.19.0 (*)
+      │   ├── zbus_macros v5.19.0 (*)
+      │   └── zbus_xml v5.2.1
+      │       ├── zbus-lockstep v0.5.2 (*)
+      │       └── zbus-lockstep-macros v0.5.2 (*)
+      └── zbus_xml v5.2.1 (*)
+
+error[unmaintained]: `zvariant_derive` is unmaintained
+    ┌─ wordcraft/Cargo.lock:675:1
+    │
+675 │ zvariant_derive 5.15.0 registry+https://github.com/rust-lang/crates.io-index
+    │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ unmaintained advisory detected
+    │
+    ├ ID: RUSTSEC-2026-0372
+    ├ Advisory: https://rustsec.org/advisories/RUSTSEC-2026-0372
+    ├ The `zvariant_derive` crate is no longer maintained as a standalone crate.
+      
+      Its derive macros are provided by [`zbus`](https://crates.io/crates/zbus) starting with version `6.0.0`.
+      
+      Users should migrate to [`zbus`](https://crates.io/crates/zbus), with its default features disabled if they only need the D-Bus wire format.
+    ├ Announcement: https://github.com/z-galaxy/zbus/issues/2043
+    ├ Solution: No safe upgrade is available!
+    ├ zvariant_derive v5.15.0
+      └── zvariant v5.15.0
+          ├── accesskit_atspi_common v0.21.0
+          │   └── accesskit_unix v0.24.0
+          │       └── accesskit_winit v0.34.1
+          │           └── egui-winit v0.37.0
+          │               └── eframe v0.37.0
+          │                   ├── wordcraft v0.18.1
+          │                   └── wordcraft-web v0.18.1
+          ├── atspi-common v0.13.0
+          │   ├── accesskit_atspi_common v0.21.0 (*)
+          │   ├── atspi v0.29.0
+          │   │   └── accesskit_unix v0.24.0 (*)
+          │   └── atspi-proxies v0.13.0
+          │       └── atspi v0.29.0 (*)
+          ├── zbus v5.19.0
+          │   ├── accesskit_unix v0.24.0 (*)
+          │   ├── atspi-common v0.13.0 (*)
+          │   ├── atspi-proxies v0.13.0 (*)
+          │   ├── wordcraft v0.18.1 (*)
+          │   └── wordcraft-ui-egui v0.18.1
+          │       ├── wordcraft v0.18.1 (*)
+          │       └── wordcraft-web v0.18.1 (*)
+          ├── zbus-lockstep v0.5.2
+          │   ├── atspi-common v0.13.0 (*)
+          │   └── zbus-lockstep-macros v0.5.2
+          │       └── atspi-common v0.13.0 (*)
+          ├── zbus-lockstep-macros v0.5.2 (*)
+          ├── zbus_macros v5.19.0
+          │   └── zbus v5.19.0 (*)
+          ├── zbus_names v4.3.4
+          │   ├── atspi-common v0.13.0 (*)
+          │   ├── zbus v5.19.0 (*)
+          │   ├── zbus_macros v5.19.0 (*)
+          │   └── zbus_xml v5.2.1
+          │       ├── zbus-lockstep v0.5.2 (*)
+          │       └── zbus-lockstep-macros v0.5.2 (*)
+          └── zbus_xml v5.2.1 (*)
+
+warning[yanked]: detected yanked crate (try `cargo update -p async-executor`)
+   ┌─ wordcraft/Cargo.lock:28:1
+   │
+28 │ async-executor 1.14.0 registry+https://github.com/rust-lang/crates.io-index
+   │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ yanked version
+   │
+   ├ async-executor v1.14.0
+     ├── accesskit_unix v0.24.0
+     │   └── accesskit_winit v0.34.1
+     │       └── egui-winit v0.37.0
+     │           └── eframe v0.37.0
+     │               ├── wordcraft v0.18.1
+     │               └── wordcraft-web v0.18.1
+     └── zbus v5.19.0
+         ├── accesskit_unix v0.24.0 (*)
+         ├── atspi-common v0.13.0
+         │   ├── accesskit_atspi_common v0.21.0
+         │   │   └── accesskit_unix v0.24.0 (*)
+         │   ├── atspi v0.29.0
+         │   │   └── accesskit_unix v0.24.0 (*)
+         │   └── atspi-proxies v0.13.0
+         │       └── atspi v0.29.0 (*)
+         ├── atspi-proxies v0.13.0 (*)
+         ├── wordcraft v0.18.1 (*)
+         └── wordcraft-ui-egui v0.18.1
+             ├── wordcraft v0.18.1 (*)
+             └── wordcraft-web v0.18.1 (*)
+
+advisories FAILED
