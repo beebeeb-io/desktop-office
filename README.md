@@ -6,8 +6,9 @@ This repository holds three upstream open-source projects, unchanged, as pinned 
 `docs/superpowers/specs/2026-11-12-native-office-viewer.md` (merged) and
 `docs/superpowers/specs/2026-11-12-native-office-editor.md`.
 
-CI runs on every push and pull request: build, test (3 tests), `scripts/check-closure.sh`
-(0 network crates in the closure for 4 targets) and `cargo deny check` (bans, licences, sources).
+**Nothing built from here is published or uploaded.** CI runs on every push to `main` and on pull
+requests: build, test (3 tests), `scripts/check-closure.sh` (0 network crates in the closure for
+4 targets) and `cargo deny check` (bans, licences, sources).
 
 ## What is in it
 
@@ -187,4 +188,5 @@ by itself.
 - The audit was run on fresh clones of the three upstream tags, not on this repository's checkout; the trees are
   identical (first table), so the lockfiles are the same files.
 - `main` is not branch-protected yet.
-- This repository was made public on 2026-11-12 by the owner's decision.
+- This repository was made public on 2026-11-12 by the owner's decision (an earlier version of this
+  line said the decision was open).

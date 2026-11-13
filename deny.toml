@@ -50,7 +50,8 @@ unknown-registry = "deny"
 unknown-git = "deny"
 # The viewer spec (§3): sources are crates.io plus the git sources the spec accepted.
 # craft-proof (hyphenation, through wordcraft-layout) is the only git dependency in the
-# viewer closure.
+# viewer closure.  Each must be pinned by revision.
 allow-git = [
     "https://github.com/storytold/craft-libs",
 ]
+required-git-spec = "rev"

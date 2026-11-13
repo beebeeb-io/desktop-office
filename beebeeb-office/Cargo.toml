@@ -26,7 +26,3 @@ gridcraft-model = { path = "../gridcraft/crates/model" }
 deckcraft-pptx  = { path = "../deckcraft/crates/pptx" }
 deckcraft-model = { path = "../deckcraft/crates/model" }
 
-[dev-dependencies]
-# Used to build a tiny .docx fixture as a ZIP in the tests.  The .xlsx and .pptx fixtures
-# use the upstream writers already in [dependencies].
-zip = "3"

@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -26,8 +30,16 @@ jobs:
       - name: Test beebeeb-office
         working-directory: beebeeb-office
         run: |
+          set -euo pipefail
           cargo test --locked 2>&1 | tee test-output.txt
-          # Count passed tests across all test result lines.
+          # Every "test result:" line must say "ok." — a failure exits non-zero above,
+          # but this also catches a silent 0-test run.
+          if grep -q '^test result:' test-output.txt && \
+             grep '^test result:' test-output.txt | grep -qv ' ok\.'; then
+            echo "FAIL: a test result line is not ok" >&2
+            grep '^test result:' test-output.txt >&2
+            exit 1
+          fi
           total=$(grep '^test result:' test-output.txt | awk '{sum += $4} END {print sum+0}')
           echo "test result: ok. $total passed (summed)"
           if [ "$total" -lt 3 ]; then

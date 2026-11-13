@@ -25,7 +25,7 @@ if [ -z "$NET" ]; then
 fi
 
 bad=0
-total_packages=0
+max_packages=0
 for target in x86_64-pc-windows-msvc x86_64-apple-darwin aarch64-apple-darwin x86_64-unknown-linux-gnu; do
   names=$(cargo tree \
     --manifest-path "$MANIFEST" \
@@ -41,9 +41,11 @@ for target in x86_64-pc-windows-msvc x86_64-apple-darwin aarch64-apple-darwin x8
     bad=1
     continue
   fi
-  total_packages=$n
+  if [ "$n" -gt "$max_packages" ]; then
+    max_packages=$n
+  fi
   for c in $NET; do
-    if echo "$names" | grep -qx "$c"; then
+    if grep -qx -- "$c" <<<"$names"; then
       echo "FAIL [$target]: $c is in the closure"
       bad=1
     fi
@@ -54,4 +56,4 @@ done
 if [ $bad -ne 0 ]; then
   exit 1
 fi
-echo "closure: $total_packages packages, 0 network crates"
+echo "closure: $max_packages packages (max across targets), 0 network crates"
