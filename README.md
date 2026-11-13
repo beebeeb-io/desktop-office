@@ -1,13 +1,14 @@
 # desktop-office
 
 The office engines behind the Beebeeb desktop app's viewer and editor for Word, Excel and PowerPoint files.
-This repository holds three upstream open-source projects, unchanged, as pinned git subtrees. Our own code (a small
-crate on top, for the viewer first and the editor after it) is not here yet. The two contracts are in the desktop
-repository: `docs/superpowers/specs/2026-11-12-native-office-viewer.md` (merged) and
-`docs/superpowers/specs/2026-11-12-native-office-editor.md` (in review when this line was written).
+This repository holds three upstream open-source projects, unchanged, as pinned git subtrees, and our own crate
+`beebeeb-office` on top. The two contracts are in the desktop repository:
+`docs/superpowers/specs/2026-11-12-native-office-viewer.md` (merged) and
+`docs/superpowers/specs/2026-11-12-native-office-editor.md`.
 
-**Nothing here is built, published or uploaded.** There is no CI in this repository: the workflow files inside the
-three folders are the upstreams' own and do not run from a subfolder.
+**Nothing built from here is published or uploaded.** CI runs on every push to `main` and on pull
+requests: build, test (3 tests), `scripts/check-closure.sh` (0 network crates in the closure for
+4 targets) and `cargo deny check` (bans, licences, sources).
 
 ## What is in it
 
@@ -28,7 +29,7 @@ flowchart LR
   U1[storytold/wordcraft v0.18.1] -->|git subtree| W[wordcraft/]
   U2[storytold/gridcraft v0.19.1] -->|git subtree| G[gridcraft/]
   U3[storytold/deckcraft v0.18.1] -->|git subtree| D[deckcraft/]
-  W --> V[viewer and editor crate, ours: not here yet]
+  W --> V[beebeeb-office/]
   G --> V
   D --> V
   V --> H[the desktop app's sandboxed render helper]
@@ -130,9 +131,9 @@ native-tls openssl quinn socket2 mio tokio async-std smol async-io`.
   `wordcraft_render::render_page`) but has not been built or run by us: the spike's pages came from the released
   command-line tool, which links `wordcraft-engine`.
 
-Limits: the map counts normal dependencies with default features. These tables are read from dependency metadata.
-Nothing was compiled, so they are the plan's starting point, not
-proof: the proof is `cargo tree` on our own viewer crate once it exists, with `cargo deny check bans` at 0.
+Limits: the map counts normal dependencies with default features. These tables are read from dependency metadata,
+not from a build. The proof is `cargo tree` on `beebeeb-office`, with `cargo deny check bans` at 0 and
+`scripts/check-closure.sh` passing for 4 targets, both enforced in CI.
 
 ### What an editor links (measured 2026-11-12, after the tables above)
 
@@ -178,10 +179,14 @@ by itself.
 
 ## Not done
 
-- No crate of ours, no CI. The only builds from this repository so far are the editor spike's throwaway programs
-  (above); nothing built from here is published.
+- No rendering, no `open` API with `Kind`/`Limits`, no `.doc` or `.xls` support, no corpus or fidelity tests,
+  no loopback/`file:`/UNC security cases (all later PRs per the viewer and editor plans).
+- No `cargo audit` in CI yet (the 4 `zip` advisories are ignored in `deny.toml` with a reason; `cargo audit`
+  does not support per-advisory ignores the same way).
+- The `beebeeb-office` crate has no licence (the owner's call).
+- The `craft-proof` data folder question (what language data, if any, a build embeds) is open.
 - The audit was run on fresh clones of the three upstream tags, not on this repository's checkout; the trees are
   identical (first table), so the lockfiles are the same files.
 - `main` is not branch-protected yet.
-- This repository was made public on 2026-11-12 by the owner's decision (an earlier version of this line said the
-  decision was open).
+- This repository was made public on 2026-11-12 by the owner's decision (an earlier version of this
+  line said the decision was open).
