@@ -1,12 +1,23 @@
-# The cargo-deny policy. First used to COUNT what is in the three upstream workspaces (audit/2026-11-12/).
-# Run on each whole upstream workspace it is expected to fail on `bans` (their apps talk to the network);
-# the gate that matters later is this same policy on our viewer crate's graph, where bans must be 0.
+# The cargo-deny policy for beebeeb-io/desktop-office.
+#
+# Originally used to COUNT what is in the three upstream workspaces (audit/2026-11-12/).
+# Now also used as a CI gate on the beebeeb-office crate, where bans must be 0.
 [graph]
 all-features = false
 
 [advisories]
 version = 2
 yanked = "warn"
+# zip 3.0.0 has 4 advisories about extracting archives TO DISK (symlinks, permission bits, abort
+# on a symlink entry).  The three projects read archives in memory only — 270 uses of ZipArchive,
+# 0 calls of an extract-to-disk function (README).  Not reachable as the code stands; the
+# advisory stays until upstream moves to a fixed zip.
+ignore = [
+    "RUSTSEC-2026-0367",
+    "RUSTSEC-2026-0368",
+    "RUSTSEC-2026-0369",
+    "RUSTSEC-2026-0429",
+]
 
 [licenses]
 version = 2
@@ -17,10 +28,15 @@ allow = [
     "Unicode-3.0", "Unicode-DFS-2016", "CC0-1.0", "BSL-1.0", "0BSD", "OFL-1.1", "Unlicense",
 ]
 
+[licenses.private]
+# Our own crate has no licence yet (the owner's call); ignore it in the check.
+ignore = true
+
 [bans]
 multiple-versions = "allow"
 wildcards = "allow"
 # Network clients, TLS stacks, socket layers and async runtimes: none may be in the viewer's graph.
+# List from the README and the viewer contract (deny.toml on main, §5.2).
 deny = [
     { crate = "reqwest" }, { crate = "ureq" }, { crate = "hyper" }, { crate = "h2" }, { crate = "curl" },
     { crate = "isahc" }, { crate = "attohttpc" }, { crate = "tiny_http" }, { crate = "tungstenite" },
@@ -32,4 +48,9 @@ deny = [
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
-allow-git = []
+# The viewer spec (§3): sources are crates.io plus the git sources the spec accepted.
+# craft-proof (hyphenation, through wordcraft-layout) is the only git dependency in the
+# viewer closure.
+allow-git = [
+    "https://github.com/storytold/craft-libs",
+]

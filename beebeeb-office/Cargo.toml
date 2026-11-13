@@ -1,0 +1,32 @@
+[package]
+name = "beebeeb-office"
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+description = "The office viewer and editor crate for the Beebeeb desktop app"
+
+[workspace]
+
+[dependencies]
+# WordCraft: reader → layout gives page counts; render is listed because the viewer
+# spec (§8 PR 1) names it and later PRs add render_page here.
+wordcraft-docx   = { path = "../wordcraft/crates/docx" }
+wordcraft-docbin = { path = "../wordcraft/crates/docbin" }
+wordcraft-doc    = { path = "../wordcraft/crates/doc" }
+wordcraft-layout = { path = "../wordcraft/crates/layout" }
+wordcraft-render = { path = "../wordcraft/crates/render" }
+wordcraft-fonts  = { path = "../wordcraft/crates/fonts" }
+
+# GridCraft: the xlsx reader gives us the Workbook with sheets.
+gridcraft-xlsx  = { path = "../gridcraft/crates/xlsx" }
+gridcraft-model = { path = "../gridcraft/crates/model" }
+
+# DeckCraft: the pptx reader gives us the Presentation with slides.
+deckcraft-pptx  = { path = "../deckcraft/crates/pptx" }
+deckcraft-model = { path = "../deckcraft/crates/model" }
+
+[dev-dependencies]
+# Used to build a tiny .docx fixture as a ZIP in the tests.  The .xlsx and .pptx fixtures
+# use the upstream writers already in [dependencies].
+zip = "3"

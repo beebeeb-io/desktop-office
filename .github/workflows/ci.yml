@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Install Rust
+        run: rustup show
+
+      - name: Build beebeeb-office
+        working-directory: beebeeb-office
+        run: cargo build --locked
+
+      - name: Test beebeeb-office
+        working-directory: beebeeb-office
+        run: |
+          cargo test --locked 2>&1 | tee test-output.txt
+          # Count passed tests across all test result lines.
+          total=$(grep '^test result:' test-output.txt | awk '{sum += $4} END {print sum+0}')
+          echo "test result: ok. $total passed (summed)"
+          if [ "$total" -lt 3 ]; then
+            echo "FAIL: expected at least 3 passed tests, got $total" >&2
+            exit 1
+          fi
+          rm test-output.txt
+
+      - name: Closure check (0 network crates)
+        run: ./scripts/check-closure.sh
+
+      - name: Install cargo-deny 0.20.2
+        run: cargo install cargo-deny --version 0.20.2 --locked
+
+      - name: cargo deny check
+        working-directory: beebeeb-office
+        run: cargo deny --manifest-path Cargo.toml --config ../deny.toml check
