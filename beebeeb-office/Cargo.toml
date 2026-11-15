@@ -23,6 +23,10 @@ gridcraft-model = { path = "../gridcraft/crates/model" }
 gridcraft-numfmt = { path = "../gridcraft/crates/numfmt" }
 gridcraft-calc  = { path = "../gridcraft/crates/calc" }
 gridcraft-chart = { path = "../gridcraft/crates/chart" }
+# The value, address and formula types the cells and their formulas are made of (both already in
+# the closure, under the reader and the model).
+gridcraft-core    = { path = "../gridcraft/crates/core" }
+gridcraft-formula = { path = "../gridcraft/crates/formula" }
 
 # DeckCraft: the pptx reader gives us the Presentation with slides.
 deckcraft-pptx  = { path = "../deckcraft/crates/pptx" }
