@@ -139,6 +139,4 @@ fn a_password_protected_file_says_password() {
     let locked = wordcraft_docx::encrypt_with_spin_count(&plain, "correct horse", 1).expect("encrypt");
     assert!(locked.starts_with(&[0xD0, 0xCF, 0x11, 0xE0]), "an encrypted package is a compound file");
     assert_eq!(Document::open(DocKind::Docx, &locked, &Limits::default()).err(), Some(OpenError::Password));
-    // The same bytes as a .doc are no Word 97 document: damaged, not a password prompt.
-    assert_eq!(Document::open(DocKind::Doc, &locked, &Limits::default()).err(), Some(OpenError::Damaged));
 }

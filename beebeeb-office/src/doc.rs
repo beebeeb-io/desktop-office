@@ -80,6 +80,9 @@ impl Document {
             DocKind::Docx => wordcraft_docx::read_with(bytes, &wordcraft_docx::ReadOptions::default()).map_err(from_docx)?,
             DocKind::Doc => wordcraft_docbin::read(bytes).map_err(from_docbin)?,
         };
+        // Every story and cell holds at least one paragraph, as the engine makes sure on open: an
+        // empty body still lays out as one blank page.
+        doc.ensure_nonempty();
         let oversized = drop_oversized_pictures(&mut doc, limits);
         // Laid out once; the paragraph cache is not needed after that.
         let layout = wordcraft_layout::layout(&doc, &mut LayoutCache::new(), &LayoutOptions::default());
