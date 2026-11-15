@@ -35,6 +35,11 @@ flowchart LR
   V --> H[the desktop app's sandboxed render helper]
 ```
 
+## FilmCraft (for the media helper)
+
+`filmcraft/` holds FilmCraft 0.9.0's 26 crates, vendored from their crates.io tarballs for the desktop app's media
+helper (not for the Office viewer): what, why, the hashes and the changes are in `filmcraft/README.md`.
+
 ## Licences
 
 - All three projects are licensed **MIT OR Apache-2.0**. Each folder keeps its own `LICENSE-MIT`, `LICENSE-APACHE`,
