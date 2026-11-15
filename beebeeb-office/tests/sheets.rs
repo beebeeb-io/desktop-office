@@ -272,6 +272,27 @@ mod sheets {
         assert_eq!(block.frozen, (1, 1), "one row and one column frozen");
     }
 
+    /// The negative control of the external-reference check: a reference to a sheet of this
+    /// workbook (quoted, in another case, its own sheet named, a 3-D span) keeps the value the file
+    /// has and is not flagged.
+    #[test]
+    fn a_reference_to_a_sheet_of_the_workbook_is_not_external() {
+        let mut wb = book(vec![sheet("Data"), sheet("My Sheet")]);
+        set(&mut wb, 1, 0, 1, num(42.0)); // 'My Sheet'!B1
+        set(&mut wb, 0, 1, 1, num(7.0)); // Data!B2
+        let refs = [("='My Sheet'!B1", 42.0), ("='MY SHEET'!B1", 42.0), ("=Data!B2", 7.0), ("=SUM(Data:'My Sheet'!B1)", 42.0)];
+        for (row, (f, v)) in refs.iter().enumerate() {
+            set(&mut wb, 0, row as u32 + 3, 0, formula(f, Some(*v)));
+        }
+        let block = open(&xlsx(&wb)).cells(0, whole(8, 2));
+        for (row, (f, v)) in refs.iter().enumerate() {
+            let c = cell(&block, row as u32 + 3, 0);
+            assert_eq!(c.value, Some(*v), "{f}: the value the file has");
+            assert_eq!(c.text, v.to_string(), "{f}: shown");
+        }
+        assert!(!block.missing_content, "nothing here comes from outside the file");
+    }
+
     // ---------------------------------------------------------------- charts and pictures
 
     #[test]

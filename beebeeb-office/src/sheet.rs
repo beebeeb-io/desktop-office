@@ -719,6 +719,12 @@ fn from_xls(e: gridcraft_xlsx::IoError) -> OpenError {
 mod tests {
     use super::*;
 
+    /// The stub was `Send` and `Sync`; the open workbook stays so, whatever thread a host keeps it on.
+    const _: fn() = || {
+        fn send_sync<T: Send + Sync>() {}
+        send_sync::<Workbook>();
+    };
+
     #[test]
     fn sheets_link_detection_reads_the_text_of_an_unparsed_formula() {
         assert!(names_a_link("[1]Sheet1!A1"));
