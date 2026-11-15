@@ -71,12 +71,16 @@ fn a_local_file_target_is_not_read() {
 /// not a skip).
 const OWN_NETNS: &str = "BB_OFFICE_TEST_OWN_NETNS";
 
+/// Set (to anything) where the UNC connection count must be taken, for example on the Linux build
+/// host at a checkpoint: then the SKIPPED case is a red, so a host that cannot measure it cannot
+/// pass the test.
+const REQUIRE_COUNT: &str = "BB_OFFICE_TEST_REQUIRE_UNC_COUNT";
+
 #[test]
 fn a_unc_target_makes_no_connection() {
     // On Linux a user that is not root cannot bind port 445. Then the test runs again, alone, in
     // a user and a network namespace of its own, where it is root and binds 445 itself; the
     // UNC paths are resolved (or not) inside that same process, so its listener sees any attempt.
-    #[cfg(target_os = "linux")]
     if std::env::var_os(OWN_NETNS).is_none()
         && Listener::bind("127.0.0.1:445").is_err()
         && in_own_network_namespace("a_unc_target_makes_no_connection")
@@ -107,6 +111,7 @@ fn a_unc_target_makes_no_connection() {
         assert_eq!(l.drain(), 0, "no connection to port {port}");
     }
     if let Some((_, kind)) = not_bound.iter().find(|(port, _)| *port == 445) {
+        assert!(std::env::var_os(REQUIRE_COUNT).is_none(), "{REQUIRE_COUNT} is set, and no listener bound 127.0.0.1:445 ({kind:?})");
         // Not a pass for the connection claim: the line is counted as a skip by name.
         eprintln!("SKIPPED a_unc_target_makes_no_connection: no listener on 127.0.0.1:445 ({kind:?}); the connection count was not taken");
     } else {
@@ -148,13 +153,24 @@ fn in_own_network_namespace(test: &str) -> bool {
         eprintln!("NOTE {test}: no network namespace of its own ({}: {why}); running in place", out.status);
         return false;
     }
-    // The inner run's lines, its MEASURED line among them, go into this run's output.
-    print!("{stdout}");
-    eprint!("{stderr}");
+    // The inner run's lines go into this run's output (its MEASURED line among them), each behind
+    // `netns| `, so its own `test result:` line is not counted as one of this binary's.
+    for line in stdout.lines() {
+        println!("netns| {line}");
+    }
+    for line in stderr.lines() {
+        eprintln!("netns| {line}");
+    }
     assert!(stdout.lines().any(|l| l == "running 1 test"), "{test} in its own network namespace ran exactly one test");
     assert!(out.status.success(), "{test} in its own network namespace failed ({})", out.status);
     assert!(stdout.lines().any(|l| l.starts_with("test result: ok. 1 passed;")), "{test} in its own network namespace passed");
     true
+}
+
+/// Network namespaces are Linux's: elsewhere the test always runs in place.
+#[cfg(not(target_os = "linux"))]
+fn in_own_network_namespace(_test: &str) -> bool {
+    false
 }
 
 /// Every `pub fn` in `src/`, its parameter list (comment lines left out).
