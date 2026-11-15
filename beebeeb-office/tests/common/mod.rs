@@ -377,7 +377,7 @@ pub fn cfb_file(streams: &[(&str, Vec<u8>)]) -> Vec<u8> {
     };
     entry(&mut dir, 0, "Root Entry", 5, CFB_END_OF_CHAIN, 0);
     for (i, ((name, _), d)) in streams.iter().zip(&data).enumerate() {
-        entry(&mut dir, i + 1, name, 2, starts[i], d.len() as u64);
+        entry(&mut dir, i + 1, *name, 2, starts[i], d.len() as u64);
     }
     for id in streams.len() + 1..CFB_SECTOR / 128 {
         put32(&mut dir, id * 128 + 0x44, CFB_NO_STREAM);
