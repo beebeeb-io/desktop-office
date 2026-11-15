@@ -409,19 +409,53 @@ mod sheets {
     fn only_a_workbook_of_the_asked_kind_opens() {
         let workbook = xlsx(&formatted());
         assert!(Workbook::open(SheetKind::Xlsx, &workbook, &Limits::default()).is_ok(), "control: the .xlsx opens as Xlsx");
+        let xls = std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../corpus/xls/SimpleWithColours.xls")).expect("the corpus .xls");
+        assert!(Workbook::open(SheetKind::Xls, &xls, &Limits::default()).is_ok(), "control: the .xls opens as Xls");
+        // Readable containers of another kind (lead ruling R-D1): Unsupported, and no reader sees them.
         let ods = zip_stored(&[
             ("mimetype", &b"application/vnd.oasis.opendocument.spreadsheet"[..]),
             ("content.xml", &br#"<?xml version="1.0"?><office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"/>"#[..]),
         ]);
         let xlsb_types = br#"<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/xl/workbook.bin" ContentType="application/vnd.ms-excel.sheet.binary.macroEnabled.main"/></Types>"#;
         let xlsb = zip_stored(&[("[Content_Types].xml", &xlsb_types[..]), ("xl/workbook.bin", &b"\x83\x01\x00"[..])]);
-        let csv = b"Quarter,Revenue\nQ1,120\nQ2,340\n".to_vec();
-        for (what, bytes) in [("an .ods package", &ods), ("an .xlsb package", &xlsb), ("CSV text", &csv)] {
+        for (what, kind, bytes) in [
+            ("an .ods package as Xlsx", SheetKind::Xlsx, &ods),
+            ("an .xlsb package as Xlsx", SheetKind::Xlsx, &xlsb),
+            ("an .xlsx as Xls", SheetKind::Xls, &workbook),
+            ("an .xls as Xlsx", SheetKind::Xlsx, &xls),
+        ] {
             probe::reset();
-            assert_eq!(Workbook::open(SheetKind::Xlsx, bytes, &Limits::default()).err(), Some(OpenError::Unsupported), "{what} as Xlsx");
+            assert_eq!(Workbook::open(kind, bytes, &Limits::default()).err(), Some(OpenError::Unsupported), "{what}");
             assert_eq!(probe::bytes_to_readers(), 0, "{what}: no reader saw it");
         }
-        assert_eq!(Workbook::open(SheetKind::Xls, &workbook, &Limits::default()).err(), Some(OpenError::Unsupported), "an .xlsx as Xls");
+    }
+
+    /// Lead ruling R-D1: bytes that cannot be read as a container at all (no zip or compound-file
+    /// signature, or a broken one) are Damaged, for either kind, and no reader sees them.
+    #[test]
+    fn bytes_that_are_no_container_are_damaged() {
+        let workbook = xlsx(&formatted());
+        let garbage: Vec<u8> = (0u8..64).map(|i| i.wrapping_mul(37).wrapping_add(11)).collect();
+        let csv = b"Quarter,Revenue\nQ1,120\nQ2,340\n".to_vec();
+        // The package's first half: a zip signature, no central directory.
+        let truncated = workbook[..workbook.len() / 2].to_vec();
+        let mut zip_then_garbage = b"PK\x03\x04".to_vec();
+        zip_then_garbage.extend_from_slice(&garbage);
+        let mut ole_then_garbage = vec![0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+        ole_then_garbage.extend_from_slice(&garbage);
+        for (what, bytes) in [
+            ("64 garbage bytes", &garbage),
+            ("CSV text", &csv),
+            ("a truncated .xlsx", &truncated),
+            ("a zip signature on garbage", &zip_then_garbage),
+            ("a compound-file signature on garbage", &ole_then_garbage),
+        ] {
+            for kind in [SheetKind::Xlsx, SheetKind::Xls] {
+                probe::reset();
+                assert_eq!(Workbook::open(kind, bytes, &Limits::default()).err(), Some(OpenError::Damaged), "{what} as {kind:?}");
+                assert_eq!(probe::bytes_to_readers(), 0, "{what} as {kind:?}: no reader saw it");
+            }
+        }
     }
 
     #[test]

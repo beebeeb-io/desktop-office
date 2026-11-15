@@ -226,8 +226,9 @@ impl Workbook {
     ///
     /// In this order: [`crate::prescan`] refuses a container over `limits` before any reader sees
     /// it; the content check lets [`SheetKind::Xlsx`] through only for an OOXML workbook package
-    /// and [`SheetKind::Xls`] only for a compound file with a workbook stream (an encrypted
-    /// package is [`OpenError::Password`], anything else [`OpenError::Unsupported`]); the reader
+    /// and [`SheetKind::Xls`] only for a compound file with a workbook stream (bytes that are no
+    /// readable container are [`OpenError::Damaged`], an encrypted package is
+    /// [`OpenError::Password`], a readable container of another kind [`OpenError::Unsupported`]); the reader
     /// parses the bytes; more sheets than `limits.max_sheets` or more non-empty cells than
     /// `limits.max_cells` is refused; the formulas without a cached value are calculated, once.
     pub fn open(kind: SheetKind, bytes: &[u8], limits: &Limits) -> Result<Workbook, OpenError> {
@@ -646,26 +647,39 @@ fn place(sh: &Sheet, a: &gridcraft_model::Anchor) -> Option<Anchor> {
 }
 
 /// Let only the asked kind of workbook through to the reader, which also reads `.ods`, `.csv`
-/// and `.xlsb` (never reachable here). An encrypted package says it needs a password.
+/// and `.xlsb` (never reachable here). Lead ruling R-D1 (2026-11-15):
 ///
-/// Runs after the pre-scan: the compound-file checks open its directory.
+/// - Bytes that are no container at all (neither a zip nor a compound-file signature), or a zip
+///   whose central directory cannot be read: [`OpenError::Damaged`]. No reader sees them.
+/// - An encrypted package: [`OpenError::Password`].
+/// - A readable container of another kind (a zip package that names no `.xlsx`/`.xlsm` workbook,
+///   a compound file without a workbook stream, a workbook of the other kind):
+///   [`OpenError::Unsupported`].
+///
+/// Runs after the pre-scan, which has already refused a compound file whose header, FAT or
+/// directory chain cannot be followed ([`OpenError::Damaged`]): one that passes it is readable.
 fn check_content(kind: SheetKind, bytes: &[u8]) -> Result<(), OpenError> {
-    let compound = bytes.starts_with(&crate::limits::CFB_MAGIC);
-    let format = if compound { gridcraft_xlsx::sniff(bytes) } else { gridcraft_xlsx::Format::Unknown };
-    if format == gridcraft_xlsx::Format::Encrypted {
-        return Err(OpenError::Password);
+    if bytes.starts_with(&crate::limits::CFB_MAGIC) {
+        let format = gridcraft_xlsx::sniff(bytes);
+        if format == gridcraft_xlsx::Format::Encrypted {
+            return Err(OpenError::Password);
+        }
+        return if kind == SheetKind::Xls && format == gridcraft_xlsx::Format::Xls { Ok(()) } else { Err(OpenError::Unsupported) };
     }
-    let ok = match kind {
-        SheetKind::Xlsx => !compound && is_workbook_package(bytes),
-        SheetKind::Xls => format == gridcraft_xlsx::Format::Xls,
-    };
-    if ok { Ok(()) } else { Err(OpenError::Unsupported) }
+    if !ZIP_MAGICS.iter().any(|m| bytes.starts_with(m)) {
+        return Err(OpenError::Damaged);
+    }
+    let Ok(mut zip) = zip::ZipArchive::new(std::io::Cursor::new(bytes)) else { return Err(OpenError::Damaged) };
+    if kind == SheetKind::Xlsx && names_a_workbook(&mut zip) { Ok(()) } else { Err(OpenError::Unsupported) }
 }
 
-/// Is `bytes` a zip package whose `[Content_Types].xml` names a workbook main part
-/// ([`WORKBOOK_TYPES`])? At most [`MAX_CONTENT_TYPES_BYTES`] of that part are inflated.
-fn is_workbook_package(bytes: &[u8]) -> bool {
-    let Ok(mut zip) = zip::ZipArchive::new(std::io::Cursor::new(bytes)) else { return false };
+/// The first bytes of a zip package: a local file header, an empty archive's end record, a
+/// spanned archive's marker (as the readers' own `sniff` takes them).
+const ZIP_MAGICS: [&[u8]; 3] = [b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"];
+
+/// Does the package's `[Content_Types].xml` name a workbook main part ([`WORKBOOK_TYPES`])? At
+/// most [`MAX_CONTENT_TYPES_BYTES`] of that part are inflated.
+fn names_a_workbook(zip: &mut zip::ZipArchive<std::io::Cursor<&[u8]>>) -> bool {
     let found = (0..zip.len()).find(|&i| zip.name_for_index(i).is_some_and(|n| n.trim_start_matches('/').eq_ignore_ascii_case(CONTENT_TYPES_PART)));
     let Some(i) = found else { return false };
     let Ok(entry) = zip.by_index(i) else { return false };
