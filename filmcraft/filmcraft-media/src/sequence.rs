@@ -138,8 +138,12 @@ impl ImageSequenceSource {
         })?;
         let (frame, has_alpha, pixel_format, timing) = decode_frame(&first, &bytes)?;
         let (w, h) = (frame.width, frame.height);
+        // Modified (filmcraft/PATCHES.md): the CinemaDNG timing exists only with the `dng` feature.
         let (rate, start_timecode) = match timing {
+            #[cfg(feature = "dng")]
             Some(info) => crate::still::dng::sequence_timing(&info, rate),
+            #[cfg(not(feature = "dng"))]
+            Some(never) => match never {},
             None => (rate, None),
         };
         let ext = first.rsplit('.').next().unwrap_or("image").to_ascii_uppercase();
@@ -221,10 +225,16 @@ impl MediaSource for ImageSequenceSource {
     }
 }
 
+// Modified (filmcraft/PATCHES.md): without the `dng` feature there is no DNG info, and the type has no value.
+#[cfg(feature = "dng")]
+type DngInfo = filmcraft_dng::Info;
+#[cfg(not(feature = "dng"))]
+type DngInfo = std::convert::Infallible;
+
 /// Decode one frame file: OpenEXR, Radiance HDR and DNG camera raw as linear floats (DNG with its metadata, for
 /// the sequence's timing), every other format through the still decoders as RGBA8. Returns the
 /// frame, whether it has alpha, and its pixel format for the media info.
-fn decode_frame(name: &str, bytes: &[u8]) -> Result<(VideoFrame, bool, String, Option<filmcraft_dng::Info>)> {
+fn decode_frame(name: &str, bytes: &[u8]) -> Result<(VideoFrame, bool, String, Option<DngInfo>)> {
     if crate::still::exr::sniff(bytes) {
         let d = crate::still::exr::decode(name, bytes)?;
         return Ok((d.frame, d.has_alpha, d.pixel_format, None));
@@ -233,6 +243,7 @@ fn decode_frame(name: &str, bytes: &[u8]) -> Result<(VideoFrame, bool, String, O
         let frame = crate::still::hdr::decode(name, bytes)?;
         return Ok((frame, false, "RGB 32-bit float (RGBE)".to_string(), None));
     }
+    #[cfg(feature = "dng")]
     if crate::still::dng::sniff(bytes) {
         let d = crate::still::dng::decode(name, bytes)?;
         return Ok((d.frame, false, d.pixel_format, Some(d.info)));

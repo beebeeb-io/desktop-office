@@ -332,9 +332,9 @@ impl AviSource {
             // presentation order comes from the pictures' order counts. A first look at the start
             // of the stream decides whether it reorders at all (reading every frame's header is the
             // cost of a reordering stream only).
-            // Modified (filmcraft/PATCHES.md): the order counts are read by the MXF module, so only with the `mxf`
-            // feature; without it the pictures keep their stored order.
-            #[cfg(feature = "mxf")]
+            // Modified (filmcraft/PATCHES.md): the order counts come from `crate::avc_order` (not the MXF module),
+            // so the reorder needs only the `h264` feature.
+            #[cfg(feature = "h264")]
             if codec == VCodec::H264
                 && let Some(si) = vstream
             {
@@ -359,8 +359,8 @@ impl AviSource {
                         .collect()
                 };
                 let reorders = |p: &[i64]| p.windows(2).any(|w| w[1] < w[0]);
-                if crate::mxf::avc_presentation_order(&heads(300)).is_some_and(|p| reorders(&p))
-                    && let Some(ranks) = crate::mxf::avc_presentation_order(&heads(vframes.len()))
+                if crate::avc_order::avc_presentation_order(&heads(300)).is_some_and(|p| reorders(&p))
+                    && let Some(ranks) = crate::avc_order::avc_presentation_order(&heads(vframes.len()))
                 {
                     // the pictures keep the slots they occupy (empty drop-frame chunks between them
                     // stay), shown in their presentation order

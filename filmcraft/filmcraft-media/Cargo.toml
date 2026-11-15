@@ -43,12 +43,14 @@ path = "tests/hdr_oracle.rs"
 [[test]]
 name = "tiff_ycbcr"
 path = "tests/tiff_ycbcr.rs"
+required-features = ["dng"]
 
 [dependencies.filmcraft-color]
 version = "0.9.0"
 
 [dependencies.filmcraft-dng]
 version = "0.9.0"
+optional = true
 
 [dependencies.filmcraft-frame]
 version = "0.9.0"
@@ -87,6 +89,11 @@ features = ["writer"]
 
 [dev-dependencies.png]
 version = "0.18"
+
+# Modified (filmcraft/PATCHES.md): DNG (and the TIFF parser that lives in `filmcraft-dng`) is a feature.
+[features]
+default = ["dng"]
+dng = ["dep:filmcraft-dng"]
 
 [lints.clippy]
 dbg_macro = "warn"

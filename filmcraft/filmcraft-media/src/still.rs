@@ -9,9 +9,13 @@ use filmcraft_time::{FrameRate, TICKS_PER_SECOND, Tick};
 
 use crate::{FrameRequest, MediaError, MediaInfo, MediaKind, MediaSource, Result, VideoStreamInfo};
 
+// Modified (filmcraft/PATCHES.md): the DNG reader and the YCbCr TIFF reader (both parse TIFF with `filmcraft-dng`)
+// are built only with the `dng` feature.
+#[cfg(feature = "dng")]
 pub mod dng;
 pub mod exr;
 pub mod hdr;
+#[cfg(feature = "dng")]
 mod ycbcr_tiff;
 
 /// Default still duration (Premiere's preference default is 5 seconds).
@@ -49,6 +53,8 @@ pub fn decode_raster(name: &str, bytes: &[u8]) -> Result<Raster> {
     if crate::tga::sniff(name, bytes) {
         return crate::tga::decode(name, bytes);
     }
+    // Modified (filmcraft/PATCHES.md): only with the `dng` feature.
+    #[cfg(feature = "dng")]
     if ycbcr_tiff::sniff(bytes) {
         return ycbcr_tiff::decode(name, bytes);
     }
@@ -67,6 +73,8 @@ pub struct StillSource {
 impl StillSource {
     pub fn decode(name: &str, bytes: &[u8]) -> Result<Self> {
         // a DNG is a TIFF too: develop its raw image instead of reading its preview
+        // Modified (filmcraft/PATCHES.md): only with the `dng` feature; without it a DNG is an ordinary TIFF.
+        #[cfg(feature = "dng")]
         if dng::sniff(bytes) {
             return dng::still(name, bytes);
         }

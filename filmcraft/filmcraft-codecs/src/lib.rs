@@ -38,6 +38,9 @@
 #[cfg(feature = "apv")]
 pub mod apv;
 pub mod audio;
+// Modified (filmcraft/PATCHES.md): the AVC picture-order helper, shared by `avi` and `mxf`.
+#[cfg(feature = "h264")]
+mod avc_order;
 pub mod avi;
 pub mod gop;
 pub mod hw;

@@ -111,7 +111,9 @@ default = [
     "dnx",
     "apv",
     "mxf",
+    "dng",
 ]
+dng = ["filmcraft-media/dng"]
 h264 = ["dep:filmcraft-h264"]
 hevc = ["dep:filmcraft-hevc"]
 aac = [
@@ -182,6 +184,7 @@ version = "0.9.0"
 
 [dependencies.filmcraft-media]
 version = "0.9.0"
+default-features = false
 
 [dependencies.filmcraft-mpa]
 version = "0.9.0"
