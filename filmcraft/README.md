@@ -23,7 +23,8 @@ flowchart LR
 | `CHECKSUMS.sha256` | Their sha256 hashes. |
 | `index-snapshot/` | crates.io's index entries for the 26 crates as cargo cached them on 2026-11-15 (each holds the `cksum` of every version, and the dependency lists). |
 | `verify.sh` | Checks the tarballs against `CHECKSUMS.sha256` and those hashes against the index: prints `26 of 26 … 0 mismatched`. |
-| `PATCHES.md` | Every file changed after unpacking, why, and the patch itself (`patches/filmcraft-features.patch`). |
+| `PATCHES.md` | Every file changed after unpacking, why, and the two patches themselves (`patches/`), in the order they apply. |
+| `patches-check.sh` | Rebuilds the tree from `tarballs/` plus the two patches and compares it with every `filmcraft-<x>/`: prints `26 of 26 crates equal …, 0 differ`. |
 | `upstream-match.sh` | Compares each crate here with the public FilmCraft repository (see "Upstream source"). |
 
 The 26: `filmcraft-codecs` (the hub) and its whole FilmCraft closure: aac, ac3, apv, av1, avi, bitstream, color, dng, dnx,

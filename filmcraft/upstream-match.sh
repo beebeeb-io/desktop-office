@@ -2,8 +2,9 @@
 # upstream-match.sh <fork-clone> <tag-or-commit>...
 # For each vendored filmcraft-<x>/ here: how many lines its src/ differs from crates/<x>/src at each ref of the public
 # FilmCraft repository, both sides formatted alike (rustfmt, edition 2024, width 100). 0 = equal; "absent" = no such
-# crate at that ref. Reads the vendored trees as they are (after PATCHES.md, so filmcraft-codecs and filmcraft-ac3 show
-# the patch); for the unmodified sources unpack tarballs/ first and pass that folder as VENDOR.
+# crate at that ref. Reads the vendored trees as they are (after PATCHES.md's two patches, so filmcraft-codecs,
+# filmcraft-ac3 and filmcraft-media show them); for the unmodified sources unpack tarballs/ first and pass that
+# folder as VENDOR (its <name>-0.9.0/ folders are read as they unpack).
 set -u
 fork=${1:?usage: upstream-match.sh <fork-clone> <ref>...}; shift
 [ $# -gt 0 ] || { echo "usage: upstream-match.sh <fork-clone> <ref>..." >&2; exit 2; }
