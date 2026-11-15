@@ -49,13 +49,43 @@ pub enum CellAlign {
 }
 
 /// One non-empty cell, its value shown as text the way its number format shows it.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CellText {
     pub row: u32,
     pub col: u32,
+    /// What the cell shows: its value with its number format applied, in the file's date system.
     pub text: String,
     pub align: CellAlign,
     pub bold: bool,
+    /// The number behind a numeric or date cell (finite); `None` for text, booleans and errors.
+    pub value: Option<f64>,
+    /// The formula as the file writes it, with its `=` (`=SUM(B2:B9)`); `None` for a constant.
+    pub formula: Option<String>,
+}
+
+/// What an anchored object of a sheet is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AnchorKind {
+    Chart,
+    Picture,
+}
+
+/// A chart or picture of a sheet, and where it sits on the grid.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Anchor {
+    /// 0.. per sheet, stable for the open workbook.
+    pub id: u32,
+    pub kind: AnchorKind,
+    /// (row, column) of the cell its top-left corner is in.
+    pub from: (u32, u32),
+    /// (row, column) of the cell its bottom-right corner is in (inclusive).
+    pub to: (u32, u32),
+    /// Offset of its top-left corner inside `from`, points.
+    pub x_pt: f32,
+    pub y_pt: f32,
+    /// Its size, points (finite, above 0).
+    pub w_pt: f32,
+    pub h_pt: f32,
 }
 
 /// What a range shows: its non-empty cells, the widths and heights of its columns and rows
@@ -68,6 +98,12 @@ pub struct CellBlock {
     pub merges: Vec<CellRange>,
     /// (rows, columns) frozen at the top left.
     pub frozen: (u32, u32),
+    /// Every chart and picture whose `from..=to` rectangle touches the range.
+    pub anchors: Vec<Anchor>,
+    /// Something in the range is not shown as the file means it: a value from another workbook
+    /// (never read), a function that would fetch from outside the file (never run), a cell or
+    /// drawing the reader did not read.
+    pub missing_content: bool,
 }
 
 /// An open workbook. None can exist yet ([`Workbook::open`]).
@@ -88,6 +124,12 @@ impl Workbook {
 
     /// The cells of `range` on sheet `sheet` (0-based).
     pub fn cells(&self, _sheet: u32, _range: CellRange) -> CellBlock {
+        match self.never {}
+    }
+
+    /// The size in pixels of what [`Workbook::render_anchor`] writes for anchor `anchor` of sheet
+    /// `sheet` at `scale`: the caller sizes its buffer from this.
+    pub fn anchor_size(&self, _sheet: u32, _anchor: u32, _scale: f32) -> Result<(u32, u32), RenderError> {
         match self.never {}
     }
 

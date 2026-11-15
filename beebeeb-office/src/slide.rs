@@ -13,6 +13,8 @@ pub struct DeckInfo {
     pub slides: u32,
     /// (width, height) of each slide, points; one per slide.
     pub sizes_pt: Vec<(f32, f32)>,
+    /// The title of each slide (empty when it has none); one per slide.
+    pub titles: Vec<String>,
 }
 
 /// An open presentation. None can exist yet ([`Deck::open`]).
@@ -28,6 +30,12 @@ impl Deck {
 
     /// The slide count and sizes.
     pub fn info(&self) -> DeckInfo {
+        match self.never {}
+    }
+
+    /// The size in pixels of what [`Deck::render_slide`] writes for slide `n` at `scale`: the
+    /// caller sizes its buffer from this.
+    pub fn render_size(&self, _n: u32, _scale: f32) -> Result<(u32, u32), RenderError> {
         match self.never {}
     }
 

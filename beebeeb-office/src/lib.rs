@@ -27,7 +27,7 @@ pub use doc::{DocInfo, DocKind, Document, MAX_OUTLINE_ENTRIES, MAX_OUTLINE_TEXT_
 pub use error::{OpenError, RenderError};
 pub use limits::{Limits, prescan};
 pub use raster::{Rect, RenderInfo};
-pub use sheet::{CellAlign, CellBlock, CellRange, CellText, SheetInfo, SheetKind, SheetsInfo, Workbook};
+pub use sheet::{Anchor, AnchorKind, CellAlign, CellBlock, CellRange, CellText, SheetInfo, SheetKind, SheetsInfo, Workbook};
 pub use slide::{Deck, DeckInfo};
 
 /// Open a `.docx` file from bytes and return its page count.

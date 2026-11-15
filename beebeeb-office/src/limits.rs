@@ -31,6 +31,10 @@ pub const UNPACKED: &str = "unpacked size";
 pub const ENTRIES: &str = "entries";
 /// [`OpenError::TooLarge`] for a document with too many pages after layout.
 pub const PAGES: &str = "pages";
+/// [`OpenError::TooLarge`] for a workbook with too many sheets.
+pub const SHEETS: &str = "sheets";
+/// [`OpenError::TooLarge`] for a workbook with too many non-empty cells.
+pub const CELLS: &str = "cells";
 /// [`OpenError::TooLarge`] for a file a reader refused under one of its own limits.
 pub const READER: &str = "reader limit";
 
