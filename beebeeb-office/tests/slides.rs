@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 use beebeeb_office::{Deck, DeckInfo, Limits, OpenError, RenderError, limits, probe};
 use common::{NS_PKG_RELS, NS_TYPES, XML_DECL, canary_pixels, canary_png, cfb_file, colour_stats, dense_docx, save_png, zip_stored};
+use deckcraft_model::style::PictureFill;
 use deckcraft_model::{
     Geom, LayoutType, MediaClip, MediaId, MediaItem, Presentation, SchemeSlot, Shape, ShapeId, ShapeKind, ShapeStyle, Size, TextBody,
     Theme, Xfrm, defaults,
@@ -90,6 +91,23 @@ fn video_deck() -> Vec<u8> {
         ..Default::default()
     };
     place(&mut p, 0, clip);
+    let oval = ellipse(&mut p);
+    place(&mut p, 1, oval);
+    write(&p)
+}
+
+/// Slide 0: one 144 x 144 pt picture of `data`, embedded; slide 1: only an ellipse.
+fn embedded_picture_deck(data: Vec<u8>) -> Vec<u8> {
+    let mut p = deck_model(defaults::WIDE, &[(LayoutType::Blank, ""), (LayoutType::Blank, "")]);
+    let media = add_media(&mut p, "x.png", "image/png", data, None);
+    let picture = Shape {
+        id: ShapeId(new_id(&mut p)),
+        name: "Picture".into(),
+        xfrm: Some(Xfrm::new(100.0, 100.0, 144.0, 144.0)),
+        kind: ShapeKind::Picture { fill: PictureFill { media, ..Default::default() } },
+        ..Default::default()
+    };
+    place(&mut p, 0, picture);
     let oval = ellipse(&mut p);
     place(&mut p, 1, oval);
     write(&p)
@@ -336,6 +354,34 @@ fn a_slide_with_video_shows_its_poster_and_says_content_is_missing() {
     let (info, px) = render(&deck, 1, 1.0);
     assert!(!info.missing_content, "the slide without video says nothing is missing");
     assert_eq!(canary_pixels(&px), 0, "and shows no poster");
+}
+
+#[test]
+fn a_picture_over_the_limits_or_that_does_not_decode_is_missing() {
+    let canary = embedded_picture_deck(canary_png());
+    // The control: within the limits the 64 x 64 canary is drawn, and nothing is missing.
+    let deck = open(&canary);
+    let (info, px) = render(&deck, 0, 1.0);
+    assert!(!info.missing_content, "the canary within the limits: nothing missing");
+    assert!(canary_pixels(&px) > 15_000, "the canary within the limits is drawn");
+    // One pixel over the side limit, or one pixel over the pixel limit: left out before decoding.
+    for (what, lim) in [
+        ("a side over max_image_side_px", Limits { max_image_side_px: 63, ..Limits::default() }),
+        ("more than max_image_pixels", Limits { max_image_pixels: 64 * 64 - 1, ..Limits::default() }),
+    ] {
+        let deck = Deck::open(&canary, &lim).unwrap_or_else(|e| panic!("{what}: opens ({e})"));
+        let (w, h) = deck.render_size(0, 1.0).expect("render size");
+        let mut out = vec![0u8; w as usize * h as usize * 4];
+        let info = deck.render_slide(0, 1.0, &mut out).expect("render");
+        assert!(info.missing_content, "{what}: the slide says content is missing");
+        assert_eq!(canary_pixels(&out), 0, "{what}: the picture is not drawn");
+        let mut out = vec![0u8; w as usize * h as usize * 4];
+        assert!(!deck.render_slide(1, 1.0, &mut out).expect("render").missing_content, "{what}: the slide without it is complete");
+    }
+    // Bytes that start like a PNG but do not decode.
+    let broken = open(&embedded_picture_deck(b"\x89PNG\r\n\x1a\n but not a picture".to_vec()));
+    assert!(render(&broken, 0, 1.0).0.missing_content, "a picture that does not decode: content is missing");
+    assert!(!render(&broken, 1, 1.0).0.missing_content, "the slide without it is complete");
 }
 
 #[test]

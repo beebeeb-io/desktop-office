@@ -301,7 +301,7 @@ fn corpus_counts() {
             }
         }
         println!(
-            "corpus {kind}: files {files}, ok {ok}, pages-match {match_n}, no-missing {no_missing}, unsupported {unsup}, file-rate {} %",
+            "corpus {kind}: files {files}, ok {ok}, pages-match {match_n}, no-missing {no_missing}, file-rate {} %",
             percent(no_missing, files)
         );
         println!(
