@@ -81,9 +81,8 @@ impl Document {
             DocKind::Doc => wordcraft_docbin::read(bytes).map_err(from_docbin)?,
         };
         let oversized = drop_oversized_pictures(&mut doc, limits);
-        let mut cache = LayoutCache::new();
-        let layout = wordcraft_layout::layout(&doc, &mut cache, &LayoutOptions::default());
-        drop(cache);
+        // Laid out once; the paragraph cache is not needed after that.
+        let layout = wordcraft_layout::layout(&doc, &mut LayoutCache::new(), &LayoutOptions::default());
         if layout.pages.is_empty() {
             return Err(OpenError::Damaged);
         }

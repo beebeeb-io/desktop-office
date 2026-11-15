@@ -182,7 +182,9 @@ fn prescan_cfb(bytes: &[u8], limits: &Limits) -> Result<(), OpenError> {
     let mut streams_len: u64 = 0;
     let mut sector = u32_at(bytes, 0x30).ok_or(OpenError::Damaged)?;
     let mut steps = 0usize;
-    while sector != END_OF_CHAIN {
+    // A chain some writers end with a free entry instead of END_OF_CHAIN ends there too; what
+    // that leaves wrong is for `cfb` to report.
+    while sector != END_OF_CHAIN && sector != FREE_SECT {
         steps += 1;
         if steps > num_sectors || sector as usize >= num_sectors {
             return Err(OpenError::Damaged);
