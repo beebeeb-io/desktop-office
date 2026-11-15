@@ -21,7 +21,8 @@ pub const MAX_OUTLINE_ENTRIES: usize = 10_000;
 /// Longest outline entry text, bytes of UTF-8 (cut at a character boundary).
 pub const MAX_OUTLINE_TEXT_BYTES: usize = 1024;
 
-/// Which Word reader a file is for.
+/// The Word kind a file's name says. The bytes decide which reader opens it
+/// ([`Document::open`]); the kind is used only for bytes that start like no file kind known here.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DocKind {
     /// `.docx`, and the same package as `.docm`, `.dotx`, `.dotm`.
@@ -69,14 +70,17 @@ impl Document {
     /// Open a Word document from its bytes and lay it out.
     ///
     /// In this order: [`crate::prescan`] refuses a container over `limits` before any reader sees
-    /// it; the reader for `kind` parses it; pictures over the picture limits are left out; the
-    /// document is laid out once; more than `limits.max_pages` pages is refused. Nothing is
-    /// fetched and nothing is written: linked pictures, templates and fields stay unresolved.
-    /// Fonts embedded in the file are not loaded; the system's font folder may be read.
+    /// it; what the bytes hold picks the reader, whatever `kind` says (`reader_for`: a `.docx`
+    /// package named `.doc` opens, an RTF file or a web page is [`OpenError::Unsupported`]); the
+    /// reader parses them; pictures over the picture limits are left out; the document is laid
+    /// out once; more than `limits.max_pages` pages is refused. Nothing is fetched and nothing is
+    /// written: linked pictures, templates and fields stay unresolved. Fonts embedded in the file
+    /// are not loaded; the system's font folder may be read.
     pub fn open(kind: DocKind, bytes: &[u8], limits: &Limits) -> Result<Document, OpenError> {
         crate::prescan(bytes, limits)?;
+        let reader = reader_for(kind, bytes)?;
         probe::handed(bytes);
-        let mut doc = match kind {
+        let mut doc = match reader {
             DocKind::Docx => wordcraft_docx::read_with(bytes, &wordcraft_docx::ReadOptions::default()).map_err(from_docx)?,
             DocKind::Doc => wordcraft_docbin::read(bytes).map_err(from_docbin)?,
         };
@@ -245,6 +249,88 @@ impl Document {
             !glyphs.is_empty() || !pictures.is_empty() || truncated
         })
     }
+}
+
+/// The first bytes of a zip package (a local file header): `.docx` and its relatives.
+const ZIP_MAGIC: &[u8] = b"PK\x03\x04";
+/// The first bytes of an RTF file.
+const RTF_MAGIC: &[u8] = b"{\\rtf";
+/// A UTF-8 byte-order mark.
+const UTF8_BOM: &[u8] = &[0xEF, 0xBB, 0xBF];
+/// How much of the start of a file is looked at for a web page.
+const SNIFF_BYTES: usize = 4096;
+
+/// Which reader opens `bytes`, picked by what they hold, as Word does: a file saved under the
+/// other Word name (a `.docx` package named `.doc`, a Word 97-2003 file named `.docx`) opens, and
+/// a readable file of another kind is not called damaged.
+///
+/// - A zip package: the `.docx` reader.
+/// - A compound file: the `.doc` reader; but an encrypted Word package (also a compound file)
+///   goes to the `.docx` reader, which says it needs a password ([`OpenError::Password`]).
+/// - RTF, a web page, a Word XML document: [`OpenError::Unsupported`]. No reader here shows
+///   them, and none is handed the bytes.
+/// - Anything else: the reader `kind` names, which says what is wrong with it.
+///
+/// Runs after the pre-scan: the encrypted-package check opens the compound file's directory.
+fn reader_for(kind: DocKind, bytes: &[u8]) -> Result<DocKind, OpenError> {
+    if bytes.starts_with(ZIP_MAGIC) {
+        return Ok(DocKind::Docx);
+    }
+    if bytes.starts_with(&crate::limits::CFB_MAGIC) {
+        return Ok(if wordcraft_docx::is_encrypted(bytes) { DocKind::Docx } else { DocKind::Doc });
+    }
+    if bytes.starts_with(RTF_MAGIC) {
+        return Err(OpenError::Unsupported);
+    }
+    if is_web_page(bytes) {
+        return Err(OpenError::Unsupported);
+    }
+    if is_word_xml(bytes) {
+        return Err(OpenError::Unsupported);
+    }
+    Ok(kind)
+}
+
+/// Does the file start like a web page (`<!DOCTYPE html …>` or `<html …>`, after a byte-order
+/// mark, white space, an XML declaration and comments)? Word's Save as Web Page and many report
+/// generators write one under a `.doc` name. Only the first [`SNIFF_BYTES`] are read, as ASCII
+/// in any case; a page in UTF-16 is not recognised.
+fn is_web_page(bytes: &[u8]) -> bool {
+    let head = &bytes[..bytes.len().min(SNIFF_BYTES)];
+    let mut t = head.strip_prefix(UTF8_BOM).unwrap_or(head).trim_ascii_start();
+    for _ in 0..64 {
+        let skip = if t.starts_with(b"<!--") {
+            find(t, b"-->").map(|i| i + 3)
+        } else if t.starts_with(b"<?") {
+            find(t, b"?>").map(|i| i + 2)
+        } else {
+            break;
+        };
+        let Some(end) = skip else { return false };
+        t = t[end..].trim_ascii_start();
+    }
+    starts_with_tag(t, b"<!doctype html") || starts_with_tag(t, b"<html")
+}
+
+/// Is this a Word XML document (Word 2003 XML or Flat OPC), by its root element? Only bytes that
+/// start with markup (or a UTF-16 byte-order mark) are parsed, as upstream does.
+fn is_word_xml(bytes: &[u8]) -> bool {
+    let utf16 = bytes.starts_with(&[0xFF, 0xFE]) || bytes.starts_with(&[0xFE, 0xFF]);
+    let markup = bytes.strip_prefix(UTF8_BOM).unwrap_or(bytes).trim_ascii_start().starts_with(b"<");
+    (utf16 || markup) && !matches!(wordcraft_docx::sniff_xml(bytes), wordcraft_docx::XmlKind::Other)
+}
+
+/// `t` starts with the tag `name` (ASCII, any case), and the tag's name ends there: `<htmlish>`
+/// is some other markup.
+fn starts_with_tag(t: &[u8], name: &[u8]) -> bool {
+    t.len() >= name.len()
+        && t[..name.len()].eq_ignore_ascii_case(name)
+        && t.get(name.len()).is_none_or(|c| c.is_ascii_whitespace() || *c == b'>' || *c == b'/')
+}
+
+/// Where `needle` (not empty) first occurs in `hay`.
+fn find(hay: &[u8], needle: &[u8]) -> Option<usize> {
+    hay.windows(needle.len()).position(|w| w == needle)
 }
 
 /// How a viewer draws: the upstream defaults (no formatting marks, tracked changes shown as

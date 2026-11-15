@@ -174,6 +174,13 @@ pub fn xml_escape(s: &str) -> String {
 /// A WordprocessingML package written by hand: `body` inside `w:body` (a Letter page with 1"
 /// margins follows it), `rels` inside `word/_rels/document.xml.rels`, and the extra `parts`.
 pub fn docx_package(body: &str, rels: &str, parts: &[(&str, &[u8])]) -> Vec<u8> {
+    docx_package_on(body, rels, parts, (12240, 15840))
+}
+
+/// [`docx_package`] on a page of `page` = (width, height) in twips (twentieths of a point), as
+/// Word states a page size: Letter is (12240, 15840), A4 (11906, 16838).
+pub fn docx_package_on(body: &str, rels: &str, parts: &[(&str, &[u8])], page: (u32, u32)) -> Vec<u8> {
+    let (page_w, page_h) = page;
     let settings_type = if parts.iter().any(|(name, _)| *name == "word/settings.xml") {
         r#"<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>"#
     } else {
@@ -185,7 +192,7 @@ pub fn docx_package(body: &str, rels: &str, parts: &[(&str, &[u8])]) -> Vec<u8> 
     let root_rels =
         format!(r#"{XML_DECL}<Relationships xmlns="{NS_PKG_RELS}"><Relationship Id="rId1" Type="{REL_DOCUMENT}" Target="word/document.xml"/></Relationships>"#);
     let document = format!(
-        r#"{XML_DECL}<w:document xmlns:w="{NS_W}" xmlns:r="{NS_R}" xmlns:wp="{NS_WP}" xmlns:a="{NS_A}" xmlns:pic="{NS_PIC}" xmlns:v="{NS_V}" xmlns:o="{NS_O}"><w:body>{body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>"#
+        r#"{XML_DECL}<w:document xmlns:w="{NS_W}" xmlns:r="{NS_R}" xmlns:wp="{NS_WP}" xmlns:a="{NS_A}" xmlns:pic="{NS_PIC}" xmlns:v="{NS_V}" xmlns:o="{NS_O}"><w:body>{body}<w:sectPr><w:pgSz w:w="{page_w}" w:h="{page_h}"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>"#
     );
     let document_rels = format!(r#"{XML_DECL}<Relationships xmlns="{NS_PKG_RELS}">{rels}</Relationships>"#);
     let mut entries: Vec<(&str, &[u8])> = vec![

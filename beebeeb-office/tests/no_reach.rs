@@ -66,8 +66,27 @@ fn a_local_file_target_is_not_read() {
     std::fs::remove_dir_all(&dir).ok();
 }
 
+/// Set for the run of [`a_unc_target_makes_no_connection`] in a network namespace of its own: there
+/// every listener must bind, so the connection count is always taken (a bind that fails is a red,
+/// not a skip).
+const OWN_NETNS: &str = "BB_OFFICE_TEST_OWN_NETNS";
+
+/// Set (to anything) where the UNC connection count must be taken, for example on the Linux build
+/// host at a checkpoint: then the SKIPPED case is a red, so a host that cannot measure it cannot
+/// pass the test.
+const REQUIRE_COUNT: &str = "BB_OFFICE_TEST_REQUIRE_UNC_COUNT";
+
 #[test]
 fn a_unc_target_makes_no_connection() {
+    // On Linux a user that is not root cannot bind port 445. Then the test runs again, alone, in
+    // a user and a network namespace of its own, where it is root and binds 445 itself; the
+    // UNC paths are resolved (or not) inside that same process, so its listener sees any attempt.
+    if std::env::var_os(OWN_NETNS).is_none()
+        && Listener::bind("127.0.0.1:445").is_err()
+        && in_own_network_namespace("a_unc_target_makes_no_connection")
+    {
+        return;
+    }
     // SMB on 445, NetBIOS on 139, and the WebDAV fallback on 80: count whichever can be bound.
     let mut listening = Vec::new();
     let mut not_bound = Vec::new();
@@ -76,6 +95,9 @@ fn a_unc_target_makes_no_connection() {
             Ok(l) => listening.push((port, l)),
             Err(e) => not_bound.push((port, e.kind())),
         }
+    }
+    if std::env::var_os(OWN_NETNS).is_some() {
+        assert!(not_bound.is_empty(), "in its own network namespace every listener binds: {not_bound:?}");
     }
     for (port, l) in &listening {
         drop(TcpStream::connect(l.addr).expect("connect to the listener"));
@@ -89,9 +111,66 @@ fn a_unc_target_makes_no_connection() {
         assert_eq!(l.drain(), 0, "no connection to port {port}");
     }
     if let Some((_, kind)) = not_bound.iter().find(|(port, _)| *port == 445) {
+        assert!(std::env::var_os(REQUIRE_COUNT).is_none(), "{REQUIRE_COUNT} is set, and no listener bound 127.0.0.1:445 ({kind:?})");
         // Not a pass for the connection claim: the line is counted as a skip by name.
         eprintln!("SKIPPED a_unc_target_makes_no_connection: no listener on 127.0.0.1:445 ({kind:?}); the connection count was not taken");
+    } else {
+        let ports: Vec<u16> = listening.iter().map(|(port, _)| *port).collect();
+        eprintln!("MEASURED a_unc_target_makes_no_connection: connections 0, listeners on 127.0.0.1 ports {ports:?}");
     }
+}
+
+/// Run `test` again, alone, under `unshare` in a new user namespace (this user is root in it)
+/// and a new network namespace (its loopback brought up first), where it may bind port 445.
+///
+/// Returns false after one NOTE line saying why when no such namespace can be made here
+/// (`unshare` or `ip` missing, or user namespaces refused): the caller then runs the test in
+/// place, which prints the one SKIPPED line. When the inner run started, it must have run
+/// exactly this one test, and passed.
+#[cfg(target_os = "linux")]
+fn in_own_network_namespace(test: &str) -> bool {
+    let exe = std::env::current_exe().expect("the path of this test binary");
+    // `$0` is the test binary and `$@` its arguments; `ip` lives in an sbin folder on some systems.
+    let script = r#"PATH="$PATH:/usr/sbin:/sbin"; ip link set lo up || exit 97; exec "$0" "$@""#;
+    let run = std::process::Command::new("unshare")
+        .args(["--user", "--map-root-user", "--net", "--", "sh", "-c", script])
+        .arg(&exe)
+        .args([test, "--exact", "--nocapture", "--test-threads=1"])
+        .env(OWN_NETNS, "1")
+        .output();
+    let out = match run {
+        Ok(out) => out,
+        Err(e) => {
+            eprintln!("NOTE {test}: unshare did not start ({:?}); running in place", e.kind());
+            return false;
+        }
+    };
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    if !stdout.lines().any(|l| l.starts_with("running ")) {
+        // The test binary never started: the namespace was refused, or `ip` failed.
+        let why = stderr.lines().next().unwrap_or("no message");
+        eprintln!("NOTE {test}: no network namespace of its own ({}: {why}); running in place", out.status);
+        return false;
+    }
+    // The inner run's lines go into this run's output (its MEASURED line among them), each behind
+    // `netns| `, so its own `test result:` line is not counted as one of this binary's.
+    for line in stdout.lines() {
+        println!("netns| {line}");
+    }
+    for line in stderr.lines() {
+        eprintln!("netns| {line}");
+    }
+    assert!(stdout.lines().any(|l| l == "running 1 test"), "{test} in its own network namespace ran exactly one test");
+    assert!(out.status.success(), "{test} in its own network namespace failed ({})", out.status);
+    assert!(stdout.lines().any(|l| l.starts_with("test result: ok. 1 passed;")), "{test} in its own network namespace passed");
+    true
+}
+
+/// Network namespaces are Linux's: elsewhere the test always runs in place.
+#[cfg(not(target_os = "linux"))]
+fn in_own_network_namespace(_test: &str) -> bool {
+    false
 }
 
 /// Every `pub fn` in `src/`, its parameter list (comment lines left out).

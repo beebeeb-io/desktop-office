@@ -67,28 +67,12 @@ fn status_of(e: &OpenError) -> Status {
     }
 }
 
-/// Pixel size of a page at `scale`. The API asks for a buffer of exactly `w*h*4`; the rounding is the
-/// renderer's, so the candidates are tried in turn and the first one it does not call a size error is used.
-fn render_one(doc: &Document, page: u32, size_pt: (f32, f32), scale: f32) -> Option<bool> {
-    let w = size_pt.0 * scale;
-    let h = size_pt.1 * scale;
-    let candidates = [
-        (w.round() as usize, h.round() as usize),
-        (w.ceil() as usize, h.ceil() as usize),
-        (w.floor() as usize, h.floor() as usize),
-    ];
-    for (pw, ph) in candidates {
-        if pw == 0 || ph == 0 || pw > 4096 || ph > 4096 {
-            continue;
-        }
-        let mut out = vec![0u8; pw * ph * 4];
-        match doc.render_page(page, scale, None, &mut out) {
-            Ok(info) => return Some(info.missing_content),
-            Err(beebeeb_office::RenderError::BufferSize) => continue,
-            Err(_) => return None,
-        }
-    }
-    None
+/// Renders one page at `scale` into a buffer sized by `Document::render_size`, the crate's one rule for
+/// page pixels (`ceil(pt * scale)`). `Some(missing_content)` when it rendered, `None` when it was refused.
+fn render_one(doc: &Document, page: u32, scale: f32) -> Option<bool> {
+    let (w, h) = doc.render_size(page, scale, None).ok()?;
+    let mut out = vec![0u8; w as usize * h as usize * 4];
+    doc.render_page(page, scale, None, &mut out).ok().map(|info| info.missing_content)
 }
 
 /// Opens one file and renders every page. Runs on a worker thread so a hang is cut at `PER_FILE`.
@@ -105,8 +89,7 @@ fn run_file(kind: &'static str, bytes: Vec<u8>) -> FileResult {
                         let info = doc.info();
                         let (mut clean, mut rendered) = (0u32, 0u32);
                         for p in 0..info.pages {
-                            let size = info.sizes_pt.get(p as usize).copied().unwrap_or((612.0, 792.0));
-                            if let Some(missing) = render_one(&doc, p, size, 1.0) {
+                            if let Some(missing) = render_one(&doc, p, 1.0) {
                                 rendered += 1;
                                 if !missing {
                                     clean += 1;
