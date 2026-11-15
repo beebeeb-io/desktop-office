@@ -72,12 +72,20 @@ pub(crate) fn from_docx(e: wordcraft_docx::DocxError) -> OpenError {
     }
 }
 
-/// The `.doc` reader's error as a code (every variant listed, as in [`from_docx`]).
+/// The `.doc` reader's error as a code (every variant listed, as in [`from_docx`]). A Word 6.0 or
+/// Word 95 file is an older format this build does not show, so it is
+/// [`OpenError::Unsupported`], not damaged.
 pub(crate) fn from_docbin(e: wordcraft_docbin::DocbinError) -> OpenError {
     use wordcraft_docbin::DocbinError as E;
     match e {
         E::PasswordRequired | E::WrongPassword | E::Encryption(_) => OpenError::Password,
         E::Limit(_) => OpenError::TooLarge(crate::limits::READER),
+        E::NotWord(m) if m.contains(OLDER_WORD) => OpenError::Unsupported,
         E::Container(_) | E::NotWord(_) | E::Malformed(_) => OpenError::Damaged,
     }
 }
+
+/// How the `.doc` reader names a Word 6.0 / Word 95 file (the older magic `0xA5DC`) in its
+/// `NotWord` message: the reader has no variant of its own for it. The test built on the corpus
+/// files' headers goes red if that wording changes on a subtree bump.
+const OLDER_WORD: &str = "Word 6.0/95";
