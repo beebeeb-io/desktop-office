@@ -93,15 +93,26 @@ fn a_page_over_4096_is_refused() {
     assert_eq!(doc.render_size(0, 1.0, Some(Rect { x: 0, y: 0, w: 0, h: 10 })), Err(RenderError::BadRegion));
 }
 
+/// Render `tile` of page 1 at scale 1.0 into a buffer of its own size.
+fn render_tile(doc: &Document, tile: Rect) -> Vec<u8> {
+    let mut out = vec![0u8; tile.w as usize * tile.h as usize * 4];
+    let info = doc.render_page(0, 1.0, Some(tile), &mut out).expect("the tile renders");
+    assert_eq!((info.w, info.h), (tile.w, tile.h));
+    out
+}
+
 #[test]
 fn a_tile_renders_its_region_of_the_page() {
     let doc = Document::open(DocKind::Docx, &dense_docx(), &Limits::default()).expect("opens");
     let (full, page) = render(&doc, 0, 1.0);
-    // The top-left of the body: the shaded heading and the first lines.
-    let tile = Rect { x: 72, y: 72, w: 256, h: 128 };
-    let mut out = vec![0u8; 256 * 128 * 4];
-    let info = doc.render_page(0, 1.0, Some(tile), &mut out).expect("the tile renders");
-    assert_eq!((info.w, info.h), (256, 128));
+    // Off the body's origin (72, 72 with 1-inch margins at scale 1.0), over the first lines of
+    // text, so a tile drawn from the body's origin instead of its own shows other pixels.
+    let tile = Rect { x: 100, y: 130, w: 256, h: 128 };
+    let out = render_tile(&doc, tile);
+    // The tile at the body's origin (the heading) holds other content: the comparison below can
+    // tell the two places apart.
+    let at_origin = render_tile(&doc, Rect { x: 72, y: 72, ..tile });
+    assert!(out != at_origin, "the tile at (100, 130) draws other pixels than the one at the body's origin");
     let (distinct, _) = colour_stats(&out);
     assert!(distinct >= 10, "the tile has content: {distinct} colours");
     // It matches the same pixels of the whole page (a little antialiasing difference allowed).
