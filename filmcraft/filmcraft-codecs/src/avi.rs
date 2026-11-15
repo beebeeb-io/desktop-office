@@ -359,8 +359,10 @@ impl AviSource {
                         .collect()
                 };
                 let reorders = |p: &[i64]| p.windows(2).any(|w| w[1] < w[0]);
-                if crate::avc_order::avc_presentation_order(&heads(300)).is_some_and(|p| reorders(&p))
-                    && let Some(ranks) = crate::avc_order::avc_presentation_order(&heads(vframes.len()))
+                if crate::avc_order::avc_presentation_order(&heads(300))
+                    .is_some_and(|p| reorders(&p))
+                    && let Some(ranks) =
+                        crate::avc_order::avc_presentation_order(&heads(vframes.len()))
                 {
                     // the pictures keep the slots they occupy (empty drop-frame chunks between them
                     // stay), shown in their presentation order

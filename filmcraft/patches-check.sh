@@ -6,7 +6,7 @@
 #   With no argument: the patches in PATCHES.md's order. Naming fewer (or reordered) patches shows the check failing.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
-order=(filmcraft-features.patch filmcraft-dng-avc-order.patch)
+order=(filmcraft-features.patch filmcraft-dng-avc-order.patch filmcraft-lints.patch)
 [ $# -gt 0 ] && order=("$@")
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT

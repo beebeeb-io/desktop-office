@@ -13,6 +13,8 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use filmcraft_isobmff::{CodecConfig, SampleEntry};
 
 pub use crate::hw_frame::{FrameCodec, FrameStreamInfo, PictureParams};
+// Modified (filmcraft/PATCHES.md, patch 3): the SPS helpers are used only with `h264` / `hevc`.
+#[cfg_attr(not(all(feature = "h264", feature = "hevc")), allow(unused_imports))]
 use crate::video::{
     avcc_length_size, h264_disposable, hevc_disposable, hvcc_length_size_and_tid, sar_par,
     vui_color,
@@ -220,6 +222,8 @@ fn without_trailing_zeros(nal: &[u8]) -> &[u8] {
 }
 
 /// Length-prefixed parameter-set entries (`u16` length + bytes) starting at `pos`.
+// Modified (filmcraft/PATCHES.md, patch 3): read only for an `avcC` / `hvcC` record.
+#[cfg_attr(not(any(feature = "h264", feature = "hevc")), allow(dead_code))]
 fn read_sets(rec: &[u8], pos: &mut usize, count: usize, out: &mut Vec<Vec<u8>>) -> Result<()> {
     for _ in 0..count {
         let len = rec

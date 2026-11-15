@@ -4,20 +4,24 @@ Commit 1 vendored every `filmcraft-*/` folder exactly as its crates.io tarball u
 `diff -r` against a fresh unpack of `tarballs/` showed nothing). Commit 2 makes each patent-pool codec an optional Cargo
 feature, so a build that leaves one out does not contain it: not linked, not reachable, not in the binary. A route that is
 turned off at run time is not enough (the legal brief on media codec patents, 2026-11-15, finding F1).
-Commit 3 makes DNG a feature of `filmcraft-media` too, and moves the AVC order helper out of the `mxf` module.
+Commit 3 makes DNG a feature of `filmcraft-media` too, and moves the AVC order helper out of the `mxf` module. Commit 4
+quiets the warnings the first two left in builds without some features (lint attributes only) and formats patch 2's
+AVI lines.
 
 ## The patches, in the order they apply
-Both are made with `git diff` and apply with `git apply` or `patch -p1` from the repository root, in this order:
+All three are made with `git diff` and apply with `git apply` or `patch -p1` from the repository root, in this order:
 
 | # | Patch | Made against | What it does |
 |---|---|---|---|
 | 1 | `patches/filmcraft-features.patch` (commit 2) | commit 1, the unpacked tarballs | each patent-pool codec an optional feature of `filmcraft-codecs`; E-AC-3 a feature of `filmcraft-ac3` |
 | 2 | `patches/filmcraft-dng-avc-order.patch` (commit 3) | commit 2, so patch 1 applied | DNG a feature of `filmcraft-media`; the AVC order helper moves out of `mxf` into `avc_order.rs` |
+| 3 | `patches/filmcraft-lints.patch` (commit 4) | commit 3, so patches 1 and 2 applied | lint attributes for code a build without some features leaves unused; rustfmt of patch 2's AVI lines. No code path changes |
 
 Patch 2 does not apply on its own: its context is patch 1's text (`filmcraft-codecs/Cargo.toml`, `src/lib.rs`,
-`src/avi.rs` carry both). `patches-check.sh` rebuilds the tree from `tarballs/` plus the two patches in this order and
-compares it with every `filmcraft-<x>/` here (prints `26 of 26 crates equal …, 0 differ`); naming patch 1 alone shows it
-failing (2 crates differ), naming them reversed shows it refusing (patch 2 does not apply).
+`src/avi.rs` carry both); patch 3 likewise needs both. `patches-check.sh` rebuilds the tree from `tarballs/` plus the
+three patches in this order and compares it with every `filmcraft-<x>/` here (prints `26 of 26 crates equal …, 0
+differ`); naming patch 1 alone shows it failing (2 crates differ), naming patches 2 and 1 shows it refusing (patch 2
+does not apply).
 
 ## The features (`filmcraft-codecs`)
 `default` keeps every codec, so a build that asks for nothing still gets upstream's behaviour. The media helper asks for
@@ -64,12 +68,18 @@ which keeps the module's types and answers every E-AC-3 call with `Error::Unsupp
 | 2 | `filmcraft-codecs/src/mxf.rs` | the function removed; it uses `crate::avc_order` |
 | 2 | `filmcraft-codecs/src/avi.rs` | the H.264 reorder pass now behind `h264` (was `mxf`) and calls `crate::avc_order` |
 | 2 | `filmcraft-codecs/src/lib.rs` | `mod avc_order` behind `h264` |
+| 3 | `filmcraft-codecs/src/lib.rs` | `builtin_factories` allows `clippy::vec_init_then_push` (its entries sit behind features, which `vec![]` cannot carry) |
+| 3 | `filmcraft-codecs/src/hw.rs` | the SPS helpers' import and `read_sets` may go unused without `h264` / `hevc` |
+| 3 | `filmcraft-codecs/src/mpeg.rs` | `VKind::Hevc` may go unbuilt without `hevc`; `describe_video`'s MPEG-2 values may go unused without `mpeg2` |
+| 3 | `filmcraft-codecs/src/audio.rs` | `aac_to_wav_order` and `upsamples_core` may go unused without `aac` |
+| 3 | `filmcraft-codecs/src/avi.rs` | patch 2's reorder condition formatted by rustfmt (the same expression) |
 
 Each changed spot carries a `Modified (filmcraft/PATCHES.md)` comment.
 
 ## Known limits (with a feature off)
 - The crates' own tests assume the default features (they encode test streams with the AAC, APV and ProRes encoders).
-  Run them with the defaults.
+  Run them with the defaults. The integration tests in `tests/` do not compile from the tarballs at all, patched or not:
+  they use `filmcraft-testkit`, a path dev-dependency that crates.io's packaging drops.
 - The `dng` feature of `filmcraft-media` is in its `default` (upstream's behaviour); every in-tree crate that depends on
   it asks for `default-features = false` and forwards `dng` in its own `default`, so a build with `default-features =
   false` has no `filmcraft-dng`. A crate outside this tree that names `filmcraft-media` with its defaults brings DNG back.
@@ -78,6 +88,20 @@ Each changed spot carries a `Modified (filmcraft/PATCHES.md)` comment.
   crate (preview only), and a YCbCr TIFF, which it read through `filmcraft-dng`'s TIFF parser, is refused by the `image`
   crate. The desktop media helper builds without `dng` and never plays a still (its route table knows no still format),
   so its answers do not change (by reading its `routes.rs`; not run).
+
+## Checked (2026-11-15, the 26 crates patched in by path, `cargo test --lib` and `cargo clippy --lib`)
+| Crate | Features | Unit tests | Clippy warnings |
+|---|---|---|---|
+| `filmcraft-codecs` | default | 125 passed, 0 failed (the unmodified tarballs: 125, 0) | 0 (the tarballs: 0) |
+| `filmcraft-codecs` | `h264` only (the media helper's build) | do not compile: they name the ProRes, AAC and APV crates (35 errors); the library builds | 0 |
+| `filmcraft-codecs` | none | as with `h264` only | 0 |
+| `filmcraft-media` | default | 74 passed, 0 failed (the tarballs: 74, 0) | 0 (the tarballs: 0) |
+| `filmcraft-media` | without `dng` | 69 passed, 0 failed (the 5 others are the `dng` and `ycbcr_tiff` modules' own) | 0 |
+| `filmcraft-ac3` | default | 13 passed, 0 failed (the tarballs: 13, 0) | 0 (the tarballs: 0) |
+| `filmcraft-ac3` | without `eac3` | 7 passed, 3 failed: the E-AC-3 tests, answered `Unsupported("E-AC-3 is not in this build")` by the stub | 0 |
+
+Before patch 3, clippy counted 1 warning with the default features (`vec_init_then_push`), 7 more with `h264` only and 8
+more with none, all on code that patches 1 and 2 put behind features.
 
 ## Not changed
 No decoder, demuxer or parser is changed in behaviour when its feature is on: with the default features the code paths

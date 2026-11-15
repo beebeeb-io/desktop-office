@@ -57,6 +57,8 @@ pub fn sniff(head: &[u8]) -> bool {
 enum VKind {
     Mpeg2,
     H264,
+    // Modified (filmcraft/PATCHES.md, patch 3): made only with `hevc`.
+    #[cfg_attr(not(feature = "hevc"), allow(dead_code))]
     Hevc,
 }
 
@@ -496,6 +498,12 @@ impl MpegSource {
     }
 
     /// Fill in the video stream info from the first picture.
+    // Modified (filmcraft/PATCHES.md, patch 3): the first unit, the sequence header and the colour
+    // default are read only by the MPEG-2 arm.
+    #[cfg_attr(
+        not(feature = "mpeg2"),
+        allow(unused_variables, unused_assignments, unused_mut)
+    )]
     fn describe_video(&mut self, rate_from_pts: Option<f64>) -> crate::Result<()> {
         let mut seq_header = None;
         let v = self

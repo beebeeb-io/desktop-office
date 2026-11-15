@@ -80,6 +80,8 @@ fn vorbis_to_wav_order(channels: usize) -> Option<&'static [usize]> {
 /// used elsewhere, as the AC-3 decoder does and the AAC encoder's caller undoes on export. Only the
 /// unambiguous channel configurations 3–6, 11 (6.1: … LFE, back centre, sides) and 12 (7.1: … LFE,
 /// backs, sides); 1, 2, 7 and PCE layouts keep the decoded order.
+// Modified (filmcraft/PATCHES.md, patch 3): used only by the AAC decoder.
+#[cfg_attr(not(feature = "aac"), allow(dead_code))]
 fn aac_to_wav_order(channel_config: u8) -> Option<&'static [usize]> {
     Some(match channel_config {
         3 => &[1, 2, 0],
@@ -442,6 +444,8 @@ pub fn aac_output_rate<'a>(
 }
 
 /// Whether [`PacketDecoder::aac`] upsamples a decoded AAC core at `core` Hz to `rate` (HE-AAC).
+// Modified (filmcraft/PATCHES.md, patch 3): used only with `aac`.
+#[cfg_attr(not(feature = "aac"), allow(dead_code))]
 fn upsamples_core(core: u32, rate: u32) -> bool {
     core.checked_mul(2) == Some(rate)
 }

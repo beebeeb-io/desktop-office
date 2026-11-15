@@ -98,6 +98,8 @@ impl From<CodecError> for filmcraft_media::MediaError {
 }
 
 /// Our own (pure-Rust) decoders in this build, in the order they are tried.
+// Modified (filmcraft/PATCHES.md, patch 3): the entries sit behind their features, which `vec![]` cannot carry.
+#[allow(clippy::vec_init_then_push)]
 fn builtin_factories() -> Vec<VideoDecoderFactory> {
     let mut f: Vec<VideoDecoderFactory> = Vec::new();
     #[cfg(feature = "h264")]
