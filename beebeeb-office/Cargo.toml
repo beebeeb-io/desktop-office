@@ -9,8 +9,7 @@ description = "The office viewer and editor crate for the Beebeeb desktop app"
 [workspace]
 
 [dependencies]
-# WordCraft: reader → layout gives page counts; render is listed because the viewer
-# spec (§8 PR 1) names it and later PRs add render_page here.
+# WordCraft below wordcraft-engine (which reaches a network client): reader → layout → render.
 wordcraft-docx   = { path = "../wordcraft/crates/docx" }
 wordcraft-docbin = { path = "../wordcraft/crates/docbin" }
 wordcraft-doc    = { path = "../wordcraft/crates/doc" }
@@ -25,4 +24,9 @@ gridcraft-model = { path = "../gridcraft/crates/model" }
 # DeckCraft: the pptx reader gives us the Presentation with slides.
 deckcraft-pptx  = { path = "../deckcraft/crates/pptx" }
 deckcraft-model = { path = "../deckcraft/crates/model" }
+
+# The pre-scan reads a package's central directory with the same zip crate the three readers use,
+# so it sees the entries they would see. Same version and features as theirs (zip 3.0.0 is already
+# in the closure): no new crate.
+zip = { version = "3.0.0", default-features = false, features = ["deflate"] }
 

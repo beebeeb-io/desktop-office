@@ -2,58 +2,59 @@
 //! DeckCraft.  It lives in `beebeeb-io/desktop-office` and is linked only by the sandboxed
 //! helper binary; the app process never depends on it.
 //!
-//! Public API for now: three functions that open a document from bytes in memory and return
-//! page, sheet or slide counts — one per document kind.
+//! Every function takes the file's bytes, never a path or a URL, and nothing in this crate opens
+//! a file or a connection: a target named inside a document (a linked picture, a template, an
+//! `INCLUDEPICTURE` field) is never resolved. The readers below may read the system's font folder.
+//!
+//! - [`Document`]: Word documents (`.docx`, `.doc`): pages rendered as RGBA8 into a buffer the
+//!   caller sized, the outline, the word count.
+//! - [`Workbook`], [`Deck`]: spreadsheets and presentations, the final API; not built yet (every
+//!   open says [`OpenError::Unsupported`]).
+//! - [`Limits`] and [`prescan`]: the viewer contract's limits; a container over them is refused
+//!   from what it declares, before any reader inflates it.
+//! - [`open_docx`], [`open_xlsx`], [`open_pptx`]: page, sheet and slide counts.
 
-/// Errors returned by the three open functions.
-#[derive(Debug)]
-pub enum OpenError {
-    /// The .docx reader failed.
-    Docx(wordcraft_docx::DocxError),
-    /// The .xlsx reader failed.
-    Xlsx(gridcraft_xlsx::IoError),
-    /// The .pptx reader failed.
-    Pptx(deckcraft_pptx::PptxError),
-}
+mod doc;
+mod error;
+pub mod limits;
+#[doc(hidden)]
+pub mod probe;
+mod raster;
+mod sheet;
+mod slide;
 
-impl std::fmt::Display for OpenError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Docx(e) => write!(f, "docx: {e}"),
-            Self::Xlsx(e) => write!(f, "xlsx: {e}"),
-            Self::Pptx(e) => write!(f, "pptx: {e}"),
-        }
-    }
-}
-
-impl std::error::Error for OpenError {}
+pub use doc::{DocInfo, DocKind, Document, MAX_OUTLINE_ENTRIES, MAX_OUTLINE_TEXT_BYTES, OutlineEntry};
+pub use error::{OpenError, RenderError};
+pub use limits::{Limits, prescan};
+pub use raster::{Rect, RenderInfo};
+pub use sheet::{CellAlign, CellBlock, CellRange, CellText, SheetInfo, SheetKind, SheetsInfo, Workbook};
+pub use slide::{Deck, DeckInfo};
 
 /// Open a `.docx` file from bytes and return its page count.
 ///
-/// The document is parsed and laid out so pages can be counted.  No rendering happens.
-/// The function takes bytes, never a path or URL; `wordcraft-fonts` may read the system
-/// font directory during layout.
+/// [`Document::open`] with the default [`Limits`]: pre-scanned, parsed and laid out. No page is
+/// rendered.
 pub fn open_docx(bytes: &[u8]) -> Result<usize, OpenError> {
-    let doc = wordcraft_docx::read_with(bytes, &wordcraft_docx::ReadOptions::default())
-        .map_err(OpenError::Docx)?;
-    let mut cache = wordcraft_layout::LayoutCache::new();
-    let laid_out = wordcraft_layout::layout(&doc, &mut cache, &wordcraft_layout::LayoutOptions::default());
-    Ok(laid_out.pages.len())
+    Document::open(DocKind::Docx, bytes, &Limits::default()).map(|d| d.info().pages as usize)
 }
 
 /// Open an `.xlsx` file from bytes and return its sheet count.
 ///
-/// The function takes bytes, never a path or URL.
+/// Pre-scanned with the default [`Limits`] first.
 pub fn open_xlsx(bytes: &[u8]) -> Result<usize, OpenError> {
-    let (workbook, _report) = gridcraft_xlsx::read_xlsx(bytes).map_err(OpenError::Xlsx)?;
+    prescan(bytes, &Limits::default())?;
+    probe::handed(bytes);
+    let (workbook, _report) = gridcraft_xlsx::read_xlsx(bytes).map_err(|_| OpenError::Damaged)?;
     Ok(workbook.sheets.len())
 }
 
 /// Open a `.pptx` file from bytes and return its slide count.
 ///
-/// The function takes bytes, never a path or URL.
+/// Pre-scanned with the default [`Limits`] first.
 pub fn open_pptx(bytes: &[u8]) -> Result<usize, OpenError> {
-    let presentation = deckcraft_pptx::import(bytes).map_err(OpenError::Pptx)?;
+    prescan(bytes, &Limits::default())?;
+    probe::handed(bytes);
+    let presentation = deckcraft_pptx::import(bytes).map_err(|_| OpenError::Damaged)?;
     Ok(presentation.slides.len())
 }
 
