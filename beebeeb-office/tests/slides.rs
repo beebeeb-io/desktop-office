@@ -6,11 +6,14 @@
 mod common;
 
 use std::collections::BTreeMap;
+use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
 
 use beebeeb_office::{Deck, DeckInfo, Limits, OpenError, RenderError, limits, probe};
-use common::{NS_PKG_RELS, NS_TYPES, XML_DECL, canary_pixels, canary_png, cfb_file, colour_stats, dense_docx, save_png, zip_stored};
+use common::{
+    NS_PKG_RELS, NS_TYPES, RawEntry, XML_DECL, canary_pixels, canary_png, cfb_file, colour_stats, crc32, dense_docx, save_png, zip_raw, zip_stored,
+};
 use deckcraft_model::style::PictureFill;
 use deckcraft_model::{
     Geom, LayoutType, MediaClip, MediaId, MediaItem, Presentation, SchemeSlot, Shape, ShapeId, ShapeKind, ShapeStyle, Size, TextBody,
@@ -111,6 +114,37 @@ fn embedded_picture_deck(data: Vec<u8>) -> Vec<u8> {
     let oval = ellipse(&mut p);
     place(&mut p, 1, oval);
     write(&p)
+}
+
+/// Every entry of a zip package: (name, unpacked bytes).
+fn zip_entries(bytes: &[u8]) -> Vec<(String, Vec<u8>)> {
+    let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).expect("a zip package");
+    (0..zip.len())
+        .map(|i| {
+            let mut entry = zip.by_index(i).expect("a zip entry");
+            let mut data = Vec::new();
+            entry.read_to_end(&mut data).expect("the entry reads");
+            (entry.name().to_string(), data)
+        })
+        .collect()
+}
+
+/// The package again, stored: each entry as it was, except the entry named `part`, which is left
+/// out when `method` is `None`, else written with that compression method around its own bytes
+/// and checksum (method 12, bzip2, is one no reader here can inflate).
+fn repack(entries: &[(String, Vec<u8>)], part: Option<&str>, method: Option<u16>) -> Vec<u8> {
+    let raw: Vec<RawEntry<'_>> = entries
+        .iter()
+        .filter(|(name, _)| part != Some(name.as_str()) || method.is_some())
+        .map(|(name, data)| RawEntry {
+            name,
+            method: if part == Some(name.as_str()) { method.unwrap_or(0) } else { 0 },
+            data,
+            crc: crc32(data),
+            unpacked: data.len() as u32,
+        })
+        .collect();
+    zip_raw(&raw)
 }
 
 /// The content type of a presentation's main part, as PowerPoint names it in `[Content_Types].xml`.
@@ -318,7 +352,6 @@ fn only_a_presentation_package_opens() {
         (".ppt (a compound file)", ppt),
         (".odp (an OpenDocument package)", odp_package()),
         (".docx (a Word package)", dense_docx()),
-        ("plain text", b"Q3 plan\nThanks\n".to_vec()),
     ] {
         probe::reset();
         assert_eq!(Deck::open(&bytes, &Limits::default()).err(), Some(OpenError::Unsupported), "{what}");
@@ -338,7 +371,19 @@ fn a_protected_or_damaged_deck_says_so() {
     assert_eq!(Deck::open(&presentation_without_its_part(), &Limits::default()).err(), Some(OpenError::Damaged), "a package without its presentation part");
     let pptx = write(&three_slides());
     let cut = &pptx[..pptx.len() / 2];
-    assert_eq!(Deck::open(cut, &Limits::default()).err(), Some(OpenError::Damaged), "a package cut in half");
+    // No container at all, or a broken one: damaged, and no reader is handed the bytes (lead R-D1).
+    let mut broken_cfb = cfb_file(&[("PowerPoint Document", vec![0u8; 64])]);
+    broken_cfb.truncate(700);
+    for (what, bytes) in [
+        ("a package cut in half", cut.to_vec()),
+        ("64 garbage bytes", (0..64u8).map(|i| i.wrapping_mul(37).wrapping_add(11)).collect::<Vec<u8>>()),
+        ("plain text", b"Q3 plan\nThanks\n".to_vec()),
+        ("a compound file cut short", broken_cfb),
+    ] {
+        probe::reset();
+        assert_eq!(Deck::open(&bytes, &Limits::default()).err(), Some(OpenError::Damaged), "{what}");
+        assert_eq!(probe::bytes_to_readers(), 0, "{what}: no reader was handed the bytes");
+    }
 }
 
 #[test]
@@ -382,6 +427,30 @@ fn a_picture_over_the_limits_or_that_does_not_decode_is_missing() {
     let broken = open(&embedded_picture_deck(b"\x89PNG\r\n\x1a\n but not a picture".to_vec()));
     assert!(render(&broken, 0, 1.0).0.missing_content, "a picture that does not decode: content is missing");
     assert!(!render(&broken, 1, 1.0).0.missing_content, "the slide without it is complete");
+}
+
+#[test]
+fn a_picture_whose_part_is_missing_or_unreadable_is_missing() {
+    let entries = zip_entries(&embedded_picture_deck(canary_png()));
+    let media: Vec<&str> = entries.iter().map(|(n, _)| n.as_str()).filter(|n| n.starts_with("ppt/media/")).collect();
+    assert_eq!(media.len(), 1, "the deck holds one picture part: {media:?}");
+    let part = media[0].to_string();
+    // The control: the same package repacked with nothing changed draws the canary, complete.
+    let control = open(&repack(&entries, None, None));
+    let (info, px) = render(&control, 0, 1.0);
+    assert!(!info.missing_content, "the repacked control: nothing missing");
+    assert!(canary_pixels(&px) > 15_000, "the repacked control draws the canary");
+    for (what, bytes) in [
+        ("the picture part deleted", repack(&entries, Some(&part), None)),
+        ("the picture part unreadable (a compression no reader inflates)", repack(&entries, Some(&part), Some(12))),
+    ] {
+        let deck = open(&bytes);
+        assert_eq!(deck.info().slides, 2, "{what}: both slides open");
+        let (info, px) = render(&deck, 0, 1.0);
+        assert!(info.missing_content, "{what}: the slide says content is missing");
+        assert_eq!(canary_pixels(&px), 0, "{what}: the picture is not drawn");
+        assert!(!render(&deck, 1, 1.0).0.missing_content, "{what}: the slide without it is complete");
+    }
 }
 
 #[test]

@@ -7,7 +7,7 @@
 //! and its slide says content is missing. `.ppt` has no reader here: it is unsupported for good.
 //! Transitions and animations are not played: a slide is drawn in its final state.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Read;
 use std::sync::{Arc, OnceLock};
 
@@ -42,6 +42,9 @@ pub struct Deck {
     /// The reader left out slides the file lists (a part missing or unreadable). It does not say
     /// where they stood, so every slide reports content as missing.
     lost_slides: bool,
+    /// Per slide: its part names a picture or clip whose part is missing or cannot be read, which
+    /// the reader drops without a trace ([`lost_pictures`]).
+    lost_pictures: Vec<bool>,
     /// Per slide, worked out on its first render: something on it cannot be shown.
     missing: Vec<OnceLock<bool>>,
     /// Per embedded file, worked out the first time a slide shows it as a picture: it decodes.
@@ -54,8 +57,10 @@ impl Deck {
     /// In this order: [`crate::prescan`] refuses a container over `limits` before any reader sees
     /// it; the bytes must be an OOXML presentation package (a zip whose content types name the
     /// main part of a `.pptx`, `.pptm` or `.ppsx`): an encrypted package is
-    /// [`OpenError::Password`], a `.ppt`, `.odp`, `.key` or anything else
-    /// [`OpenError::Unsupported`], and no reader is handed them; DeckCraft's reader parses them;
+    /// [`OpenError::Password`], a readable container of another kind (a `.ppt`, `.odp`, `.key`,
+    /// a Word package) [`OpenError::Unsupported`], and bytes that are no container at all, or a
+    /// broken one, [`OpenError::Damaged`]; no reader is handed any of them; DeckCraft's reader
+    /// parses them;
     /// more than `limits.max_pages` slides is refused; pictures over the picture limits are left
     /// out. Nothing is fetched and nothing is written: a linked picture or clip stays unresolved.
     pub fn open(bytes: &[u8], limits: &Limits) -> Result<Deck, OpenError> {
@@ -73,6 +78,7 @@ impl Deck {
         }
         drop_oversized_pictures(&mut pres, limits);
         let slides = pres.slides.len();
+        let lost_pictures = lost_pictures(bytes, slides);
         let info = DeckInfo {
             slides: slides as u32,
             sizes_pt: vec![size; slides],
@@ -84,6 +90,7 @@ impl Deck {
             info,
             limits: *limits,
             lost_slides: !lost.is_empty(),
+            lost_pictures,
             decodes,
             pres,
         })
@@ -166,10 +173,13 @@ impl Deck {
     }
 
     /// Slide `n` holds audio, video, a 3-D model or an object with no picture of its own; or a
-    /// picture it shows is only linked, missing, over the picture limits or does not decode; or a
-    /// character on it has no glyph in any installed font.
+    /// picture it shows is only linked, missing from the package or unreadable, over the picture
+    /// limits or does not decode; or a character on it has no glyph in any installed font.
     fn slide_misses_content(&self, n: usize) -> bool {
         let Some(slide) = self.pres.slides.get(n) else { return false };
+        if self.lost_pictures.get(n).copied().unwrap_or(false) {
+            return true;
+        }
         let refs = Refs::of_slide(&self.pres, slide);
         refs.not_drawn || refs.pictures.iter().any(|id| !self.picture_shows(*id)) || missing_glyphs(&self.pres, n)
     }
@@ -187,8 +197,8 @@ impl Deck {
     }
 }
 
-/// The first bytes of a zip package (a local file header).
-const ZIP_MAGIC: &[u8] = b"PK\x03\x04";
+/// The first bytes of a zip package (a local file header, or the end record of an empty one).
+const ZIP_MAGIC: &[u8] = b"PK";
 /// The part of an OOXML package that names the content type of every part.
 const CONTENT_TYPES: &str = "[Content_Types].xml";
 /// Largest `[Content_Types].xml` read (bytes); a real one is a few kilobytes.
@@ -200,21 +210,24 @@ const PRESENTATION_MAIN: [&str; 3] = [
     "application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml",
 ];
 
-/// Is `bytes` an OOXML presentation package? Runs after the pre-scan, before any reader.
+/// Is `bytes` an OOXML presentation package? Runs after the pre-scan, before any reader. What the
+/// person is told follows the container (lead ruling R-D1): no container at all, or a broken one,
+/// is damaged; a readable container of another kind is unsupported.
 ///
-/// - A compound file: an encrypted package ([`OpenError::Password`]) or a `.ppt`
-///   ([`OpenError::Unsupported`]: there is no reader for it).
+/// - A compound file (the pre-scan has refused a broken one as [`OpenError::Damaged`]): an
+///   encrypted package ([`OpenError::Password`]) or a `.ppt` ([`OpenError::Unsupported`]: there is
+///   no reader for it).
 /// - A zip whose `[Content_Types].xml` names a presentation's main part: yes. One that names
 ///   none (a `.docx`, an `.xlsx`), or has no content types at all (an `.odp`, a `.key`):
 ///   [`OpenError::Unsupported`]. A zip whose directory or content types cannot be read:
 ///   [`OpenError::Damaged`].
-/// - Anything else: [`OpenError::Unsupported`].
+/// - Neither a zip nor a compound file: [`OpenError::Damaged`].
 fn presentation_package(bytes: &[u8]) -> Result<(), OpenError> {
     if bytes.starts_with(&crate::limits::CFB_MAGIC) {
         return Err(if deckcraft_pptx::is_encrypted(bytes) { OpenError::Password } else { OpenError::Unsupported });
     }
     if !bytes.starts_with(ZIP_MAGIC) {
-        return Err(OpenError::Unsupported);
+        return Err(OpenError::Damaged);
     }
     let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|_| OpenError::Damaged)?;
     let Some(name) = zip.file_names().find(|n| n.trim_start_matches('/').eq_ignore_ascii_case(CONTENT_TYPES)).map(str::to_owned) else {
@@ -245,6 +258,218 @@ fn from_pptx(e: deckcraft_pptx::PptxError) -> OpenError {
         E::Unsupported(_) => OpenError::Unsupported,
         E::NotPptx(_) | E::Xml(_) | E::Write(_) => OpenError::Damaged,
     }
+}
+
+/// Per slide (in the reader's order): does its part name a picture or clip, through an internal
+/// relationship, whose target is missing from the package or cannot be read? DeckCraft's reader
+/// drops such a picture without a trace (the shape stays a plain shape), so after it opened the
+/// file the package is cross-checked here, relationship by relationship, with the reader's own
+/// rules for part names. When the slide parts found here are not one per slide of the reader's, a
+/// lost picture on any of them marks every slide. Only the slide parts are checked, not the layouts
+/// and masters they use.
+fn lost_pictures(bytes: &[u8], slides: usize) -> Vec<bool> {
+    let Some(mut pkg) = Package::open(bytes) else { return vec![true; slides] };
+    let parts = pkg.slide_parts();
+    let mut readable: HashMap<String, bool> = HashMap::new();
+    let lost: Vec<bool> = parts.iter().map(|part| pkg.slide_loses_a_picture(part, &mut readable)).collect();
+    if lost.len() == slides { lost } else { vec![lost.contains(&true); slides] }
+}
+
+/// The reader's own limit on one XML part (96 MiB): a part it would not parse is not parsed here.
+const MAX_XML_PART: u64 = 96 * 1024 * 1024;
+/// The most slides the reader takes from `presentation.xml`'s slide list.
+const MAX_SLIDE_LIST: usize = 10_000;
+/// XML nesting walked at most (the reader's parser refuses deeper documents).
+const MAX_XML_DEPTH: usize = 256;
+
+/// One relationship of a part: its id and type (the last segment), and its target: a part name for
+/// an internal one, as written for an external one.
+struct PartRel {
+    id: String,
+    kind: String,
+    target: String,
+    external: bool,
+}
+
+/// The zip package as the reader sees it: every entry under its normalised part name.
+struct Package<'a> {
+    zip: zip::ZipArchive<std::io::Cursor<&'a [u8]>>,
+    /// Normalised part name to the entry's name in the zip.
+    names: HashMap<String, String>,
+}
+
+impl<'a> Package<'a> {
+    fn open(bytes: &'a [u8]) -> Option<Package<'a>> {
+        let zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).ok()?;
+        let names = zip.file_names().map(|n| (part_norm(n), n.to_string())).collect();
+        Some(Package { zip, names })
+    }
+
+    /// The bytes of `part`, at most `max`: `None` when it is missing, cannot be read or is larger.
+    fn read(&mut self, part: &str, max: u64) -> Option<Vec<u8>> {
+        let name = self.names.get(&part_norm(part))?.clone();
+        let entry = self.zip.by_name(&name).ok()?;
+        let mut out = Vec::new();
+        entry.take(max.saturating_add(1)).read_to_end(&mut out).ok()?;
+        (out.len() as u64 <= max).then_some(out)
+    }
+
+    /// `part` is in the package and reads to its end, its checksum included. Nothing is kept; the
+    /// pre-scan bounds what the package can inflate to.
+    fn readable(&mut self, part: &str) -> bool {
+        let Some(name) = self.names.get(&part_norm(part)).cloned() else { return false };
+        let Ok(mut entry) = self.zip.by_name(&name) else { return false };
+        std::io::copy(&mut entry, &mut std::io::sink()).is_ok()
+    }
+
+    fn xml(&mut self, part: &str) -> Option<deckcraft_pptx::XmlDoc> {
+        deckcraft_pptx::parse_xml(&self.read(part, MAX_XML_PART)?).ok()
+    }
+
+    /// The relationships of `part` (an empty name: the package's own), as the reader reads them.
+    fn rels(&mut self, part: &str) -> Vec<PartRel> {
+        let Some(doc) = self.xml(&rels_path(part)) else { return Vec::new() };
+        let base = dir_of(part);
+        doc.root
+            .children_named("Relationship")
+            .filter_map(|r| {
+                let (id, ty, target) = (r.attr("Id")?, r.attr("Type")?, r.attr("Target")?);
+                let external = r.attr("TargetMode").is_some_and(|m| m.eq_ignore_ascii_case("external"));
+                Some(PartRel {
+                    id: id.to_string(),
+                    kind: ty.rsplit('/').next().unwrap_or(ty).to_string(),
+                    target: if external { target.to_string() } else { resolve_target(&base, target) },
+                    external,
+                })
+            })
+            .collect()
+    }
+
+    /// The slide parts in the reader's order: the slide list of the presentation part, each slide
+    /// through its relationship (the first with that id), without repeats.
+    fn slide_parts(&mut self) -> Vec<String> {
+        let presentation = self
+            .rels("")
+            .into_iter()
+            .find(|r| r.kind == "officeDocument")
+            .map_or_else(|| "ppt/presentation.xml".to_string(), |r| r.target);
+        let Some(doc) = self.xml(&presentation) else { return Vec::new() };
+        let rels = self.rels(&presentation);
+        let mut seen = HashSet::new();
+        let Some(list) = doc.root.child("sldIdLst") else { return Vec::new() };
+        list.children_named("sldId")
+            .take(MAX_SLIDE_LIST)
+            .filter_map(|s| rels.iter().find(|r| r.id == s.attr("r:id").unwrap_or("")).map(|r| r.target.clone()))
+            .filter(|part| seen.insert(part_norm(part)))
+            .collect()
+    }
+
+    /// Does slide part `slide` name a picture or clip whose relationship is not there, or whose
+    /// internal target is missing or unreadable? `readable` keeps each part's answer, so a picture
+    /// shown on many slides is read once.
+    fn slide_loses_a_picture(&mut self, slide: &str, readable: &mut HashMap<String, bool>) -> bool {
+        // A slide part the reader could not read is a lost slide, reported on every slide already.
+        let Some(doc) = self.xml(slide) else { return false };
+        let rels = self.rels(slide);
+        let mut ids = Vec::new();
+        picture_rel_ids(&doc.root, &mut ids, 0);
+        for id in ids {
+            let Some(rel) = rels.iter().find(|r| r.id == id) else { return true };
+            // A linked target is never fetched; the model marks it (`MediaItem::link`).
+            if rel.external {
+                continue;
+            }
+            let key = part_norm(&rel.target);
+            let ok = match readable.get(&key) {
+                Some(ok) => *ok,
+                None => {
+                    let ok = self.readable(&rel.target);
+                    readable.insert(key, ok);
+                    ok
+                }
+            };
+            if !ok {
+                return true;
+            }
+        }
+        false
+    }
+}
+
+/// The relationship ids a part's picture and clip elements name: `r:embed` and `r:link` on
+/// `a:blip` (pictures, picture fills, picture bullets), `p14:media`, `a:videoFile`, `a:audioFile`.
+fn picture_rel_ids(el: &deckcraft_pptx::XmlEl, out: &mut Vec<String>, depth: usize) {
+    if depth > MAX_XML_DEPTH {
+        return;
+    }
+    if matches!(el.local(), "blip" | "media" | "videoFile" | "audioFile") {
+        for attr in ["r:embed", "r:link"] {
+            if let Some(id) = el.attr(attr).filter(|id| !id.is_empty()) {
+                out.push(id.to_string());
+            }
+        }
+    }
+    for child in el.elements() {
+        picture_rel_ids(child, out, depth + 1);
+    }
+}
+
+/// A part name as the reader keys it: no leading `/`, `\` as `/`, ASCII lower case.
+fn part_norm(name: &str) -> String {
+    name.trim_start_matches('/').replace('\\', "/").to_ascii_lowercase()
+}
+
+/// The folder of a part name (`ppt/slides` for `ppt/slides/slide1.xml`; empty at the root).
+fn dir_of(part: &str) -> String {
+    let p = part.trim_start_matches('/');
+    p.rfind('/').map_or_else(String::new, |i| p[..i].to_string())
+}
+
+/// The relationships part of `part` (`ppt/slides/_rels/slide1.xml.rels`; `_rels/.rels` for the
+/// package itself).
+fn rels_path(part: &str) -> String {
+    let p = part.trim_start_matches('/');
+    let dir = dir_of(p);
+    let file = p.rsplit('/').next().unwrap_or(p);
+    if dir.is_empty() { format!("_rels/{file}.rels") } else { format!("{dir}/_rels/{file}.rels") }
+}
+
+/// An internal target resolved against the folder `base`, as the reader resolves it: percent
+/// escapes decoded, a fragment dropped, `\` as `/`, `.` and `..` segments applied.
+fn resolve_target(base: &str, target: &str) -> String {
+    let target = percent_decode(target.split('#').next().unwrap_or("")).replace('\\', "/");
+    let mut segs: Vec<&str> = if target.starts_with('/') { Vec::new() } else { base.split('/').filter(|s| !s.is_empty()).collect() };
+    for s in target.split('/') {
+        match s {
+            "" | "." => {}
+            ".." => {
+                segs.pop();
+            }
+            s => segs.push(s),
+        }
+    }
+    segs.join("/")
+}
+
+/// `%XX` escapes (two hex digits) decoded; anything else kept as written.
+fn percent_decode(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        let hex = b.get(i + 1..i + 3).and_then(|h| std::str::from_utf8(h).ok()).filter(|h| h.bytes().all(|c| c.is_ascii_hexdigit()));
+        match (b[i], hex.and_then(|h| u8::from_str_radix(h, 16).ok())) {
+            (b'%', Some(v)) => {
+                out.push(v);
+                i += 3;
+            }
+            (c, _) => {
+                out.push(c);
+                i += 1;
+            }
+        }
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 /// Leave out every raster picture whose header declares more than `max_image_side_px` on a side
