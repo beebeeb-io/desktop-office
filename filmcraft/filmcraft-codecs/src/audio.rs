@@ -19,9 +19,13 @@ use symphonia::core::probe::Hint;
 
 use crate::{CodecError, Result};
 
+// Modified for the Beebeeb desktop app's media helper, 2026-11-15 (filmcraft/PATCHES.md): our AAC decoder is compiled
+// only with the `aac` feature and our AC-3 / E-AC-3 decoder only with `ac3`; without them those streams are
+// `CodecError::Unsupported` (symphonia's AAC is behind the same `aac` feature).
 enum Inner {
     /// Our own AAC-LC decoder. `up` interpolates HE-AAC's core to the output rate (see [`Upsample2x`]).
     /// Surround output is reordered to WAV/SMPTE order (see [`aac_to_wav_order`]).
+    #[cfg(feature = "aac")]
     Aac {
         dec: Box<filmcraft_aac::Decoder>,
         asc: Vec<u8>,
@@ -41,6 +45,7 @@ enum Inner {
     /// Bootstrap decoders (MP3, ALAC, FLAC, HE-AAC…) via symphonia.
     Symphonia(Box<dyn Decoder>),
     /// Our AC-3 and E-AC-3 decoder (ATSC A/52, Annex E).
+    #[cfg(feature = "ac3")]
     Ac3(Box<filmcraft_ac3::Decoder>),
     /// Our MPEG-1/2 audio Layer I and II decoder (ISO/IEC 11172-3, 13818-3).
     Mpa(Box<filmcraft_mpa::Decoder>),
@@ -138,6 +143,7 @@ impl PacketDecoder {
     /// object types. `sample_rate` is the stream's output rate: when it is twice the core rate
     /// (HE-AAC, see [`aac_output_rate`]) the decoded core is upsampled to it.
     pub fn aac(asc: &[u8], sample_rate: u32) -> Result<Self> {
+        #[cfg(feature = "aac")]
         if let Ok(dec) = filmcraft_aac::Decoder::new(asc) {
             let up = upsamples_core(dec.sample_rate(), sample_rate)
                 .then(|| Box::new(Upsample2x::new(dec.channels())));
@@ -203,6 +209,12 @@ impl PacketDecoder {
         }
     }
     /// (Re)configure for the AudioSpecificConfig `asc` unless it is the current one.
+    #[cfg(not(feature = "aac"))]
+    pub fn ensure_aac(&mut self, _asc: &[u8]) -> Result<()> {
+        Err(CodecError::Unsupported("AAC is not in this build".into()))
+    }
+    /// (Re)configure for the AudioSpecificConfig `asc` unless it is the current one.
+    #[cfg(feature = "aac")]
     pub fn ensure_aac(&mut self, asc: &[u8]) -> Result<()> {
         if let Inner::Aac { asc: cur, .. } = &self.inner
             && cur == asc
@@ -219,6 +231,12 @@ impl PacketDecoder {
         Ok(())
     }
     /// AC-3 and E-AC-3 (ATSC A/52, Annex E).
+    #[cfg(not(feature = "ac3"))]
+    pub fn ac3() -> Result<Self> {
+        Err(CodecError::Unsupported("AC-3 is not in this build".into()))
+    }
+    /// AC-3 and E-AC-3 (ATSC A/52, Annex E).
+    #[cfg(feature = "ac3")]
     pub fn ac3() -> Result<Self> {
         Ok(Self {
             inner: Inner::Ac3(Box::new(filmcraft_ac3::Decoder::new())),
@@ -257,6 +275,7 @@ impl PacketDecoder {
             self.inner = Self::mpeg_audio(layer, rate)?.inner;
         }
         let dec = match &mut self.inner {
+            #[cfg(feature = "aac")]
             Inner::Aac { dec, up, .. } => {
                 let mut out = dec
                     .decode(data)
@@ -287,6 +306,7 @@ impl PacketDecoder {
             Inner::MpegPending(_) => {
                 return Err(CodecError::Decode("MPEG audio: no frame header".into()));
             }
+            #[cfg(feature = "ac3")]
             Inner::Ac3(d) => {
                 // a packet may hold several syncframes (MP4 / Matroska); E-AC-3 dependent
                 // substreams and further programs decode to no channels and are skipped
@@ -358,6 +378,7 @@ impl PacketDecoder {
     }
     pub fn reset(&mut self) {
         match &mut self.inner {
+            #[cfg(feature = "aac")]
             Inner::Aac { dec, asc, up } => {
                 if let Ok(d) = filmcraft_aac::Decoder::new(asc) {
                     **dec = d;
@@ -369,6 +390,7 @@ impl PacketDecoder {
             Inner::Mpa(d) => d.reset(),
             Inner::Opus { dec, .. } => dec.reset(),
             Inner::Symphonia(d) => d.reset(),
+            #[cfg(feature = "ac3")]
             Inner::Ac3(d) => d.reset(),
             Inner::AacPending | Inner::MpegPending(_) => {}
         }
@@ -389,6 +411,16 @@ pub fn mpeg_audio_layer(frame: &[u8]) -> Option<u8> {
 /// Explicit signalling names the rate in the `AudioSpecificConfig`; with implicit signalling (an
 /// AAC-LC config at 24 kHz or less) SBR is only visible as fill-element data in the access units,
 /// so the first ones are decoded to look for it. `None` if `asc` is not one our decoder reads.
+#[cfg(not(feature = "aac"))]
+pub fn aac_output_rate<'a>(
+    _asc: &[u8],
+    _first_units: impl IntoIterator<Item = &'a [u8]>,
+) -> Option<u32> {
+    None
+}
+
+/// The output rate of an AAC stream (see the `aac` build of this function).
+#[cfg(feature = "aac")]
 pub fn aac_output_rate<'a>(
     asc: &[u8],
     first_units: impl IntoIterator<Item = &'a [u8]>,
@@ -436,6 +468,9 @@ pub enum FixedFrames<'a> {
 /// is not `rate`.
 pub fn fixed_packet_samples(codec: FixedFrames, first: &[u8], rate: u32) -> Option<i64> {
     let mpegts = match codec {
+        #[cfg(not(feature = "aac"))]
+        FixedFrames::Aac(_) => return None,
+        #[cfg(feature = "aac")]
         FixedFrames::Aac(asc) => {
             let core = filmcraft_aac::Decoder::new(asc).ok()?.sample_rate();
             return Some(if upsamples_core(core, rate) {
@@ -444,6 +479,9 @@ pub fn fixed_packet_samples(codec: FixedFrames, first: &[u8], rate: u32) -> Opti
                 1024
             });
         }
+        #[cfg(not(feature = "ac3"))]
+        FixedFrames::Eac3 => return None,
+        #[cfg(feature = "ac3")]
         FixedFrames::Eac3 => {
             let mut samples = 0usize;
             let mut p = 0;

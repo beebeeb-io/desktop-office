@@ -96,14 +96,56 @@ path = "tests/rf64_metadata.rs"
 name = "y4m_file"
 path = "tests/y4m_file.rs"
 
+# Modified for the Beebeeb desktop app's media helper (filmcraft/PATCHES.md): the decoders of the formats that are
+# patent-pool licensed, and APV and MXF, are optional features, all ON by default (the crate as published), so a
+# build can leave them out entirely. symphonia's `aac` moved behind the `aac` feature.
+[features]
+default = [
+    "h264",
+    "hevc",
+    "aac",
+    "ac3",
+    "eac3",
+    "mpeg2",
+    "prores",
+    "dnx",
+    "apv",
+    "mxf",
+]
+h264 = ["dep:filmcraft-h264"]
+hevc = ["dep:filmcraft-hevc"]
+aac = [
+    "dep:filmcraft-aac",
+    "symphonia/aac",
+]
+ac3 = ["dep:filmcraft-ac3"]
+eac3 = [
+    "ac3",
+    "filmcraft-ac3/eac3",
+]
+mpeg2 = ["dep:filmcraft-mpeg2v"]
+prores = ["dep:filmcraft-prores"]
+dnx = ["dep:filmcraft-dnx"]
+apv = ["dep:filmcraft-apv"]
+mxf = [
+    "dep:filmcraft-mxf",
+    "h264",
+    "mpeg2",
+    "dnx",
+]
+
 [dependencies.filmcraft-aac]
 version = "0.9.0"
+optional = true
 
 [dependencies.filmcraft-ac3]
 version = "0.9.0"
+optional = true
+default-features = false
 
 [dependencies.filmcraft-apv]
 version = "0.9.0"
+optional = true
 
 [dependencies.filmcraft-av1]
 version = "0.9.0"
@@ -119,15 +161,18 @@ version = "0.9.0"
 
 [dependencies.filmcraft-dnx]
 version = "0.9.0"
+optional = true
 
 [dependencies.filmcraft-frame]
 version = "0.9.0"
 
 [dependencies.filmcraft-h264]
 version = "0.9.0"
+optional = true
 
 [dependencies.filmcraft-hevc]
 version = "0.9.0"
+optional = true
 
 [dependencies.filmcraft-isobmff]
 version = "0.9.0"
@@ -143,12 +188,14 @@ version = "0.9.0"
 
 [dependencies.filmcraft-mpeg2v]
 version = "0.9.0"
+optional = true
 
 [dependencies.filmcraft-mpegts]
 version = "0.9.0"
 
 [dependencies.filmcraft-mxf]
 version = "0.9.0"
+optional = true
 
 [dependencies.filmcraft-ogg]
 version = "0.9.0"
@@ -158,6 +205,7 @@ version = "0.9.0"
 
 [dependencies.filmcraft-prores]
 version = "0.9.0"
+optional = true
 
 [dependencies.filmcraft-time]
 version = "0.9.0"
@@ -182,7 +230,6 @@ version = "1"
 [dependencies.symphonia]
 version = "0.5.5"
 features = [
-    "aac",
     "mp1",
     "mp2",
     "mp3",

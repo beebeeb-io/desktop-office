@@ -18,6 +18,10 @@
 //! - [`AudioFileSource`]: standalone compressed audio files (MP3, FLAC, AIFF, …).
 //! - [`Y4mSource`]: uncompressed YUV4MPEG2 (`.y4m`) video, frames read on demand.
 //! - [`openers`]: the openers to register with the engine's media pool.
+//!
+//! Modified for the Beebeeb desktop app's media helper, 2026-11-15 (filmcraft/PATCHES.md): the H.264, HEVC, AAC, AC-3,
+//! E-AC-3, MPEG-1/2 video, ProRes, DNxHD and APV decoders and the MXF container are Cargo features (all on by default);
+//! a build without one does not contain it, and a stream that needs it is `CodecError::Unsupported`.
 
 #![cfg_attr(
     not(test),
@@ -31,6 +35,7 @@
     )
 )]
 
+#[cfg(feature = "apv")]
 pub mod apv;
 pub mod audio;
 pub mod avi;
@@ -40,6 +45,7 @@ mod hw_frame;
 pub mod mkv;
 pub mod mp4;
 pub mod mpeg;
+#[cfg(feature = "mxf")]
 pub mod mxf;
 pub mod ogg;
 mod stream_color;
@@ -49,6 +55,7 @@ pub mod y4m;
 
 use std::sync::{Arc, RwLock};
 
+#[cfg(feature = "apv")]
 pub use apv::ApvSource;
 pub use audio::AudioFileSource;
 pub use avi::AviSource;
@@ -56,6 +63,7 @@ pub use gop::{FRAME_BUDGET, GopStats, cached_bytes, gop_stats, live_decoders, se
 pub use mkv::MkvSource;
 pub use mp4::Mp4Source;
 pub use mpeg::MpegSource;
+#[cfg(feature = "mxf")]
 pub use mxf::MxfSource;
 pub use ogg::OggSource;
 pub use video::{DecodedFrame, VideoDecoder, VideoDecoderFactory};
@@ -86,23 +94,31 @@ impl From<CodecError> for filmcraft_media::MediaError {
     }
 }
 
-/// Our own (pure-Rust) decoders, in the order they are tried.
-const BUILTIN_FACTORIES: [VideoDecoderFactory; 10] = [
-    video::h264_factory,
-    video::hevc_factory,
-    video::vp8_factory,
-    video::vp9_factory,
-    video::av1_factory,
-    video::apv_factory,
-    video::prores_factory,
-    video::dnx_factory,
-    video::mjpeg_factory,
-    video::mpeg2_factory,
-];
+/// Our own (pure-Rust) decoders in this build, in the order they are tried.
+fn builtin_factories() -> Vec<VideoDecoderFactory> {
+    let mut f: Vec<VideoDecoderFactory> = Vec::new();
+    #[cfg(feature = "h264")]
+    f.push(video::h264_factory);
+    #[cfg(feature = "hevc")]
+    f.push(video::hevc_factory);
+    f.push(video::vp8_factory);
+    f.push(video::vp9_factory);
+    f.push(video::av1_factory);
+    #[cfg(feature = "apv")]
+    f.push(video::apv_factory);
+    #[cfg(feature = "prores")]
+    f.push(video::prores_factory);
+    #[cfg(feature = "dnx")]
+    f.push(video::dnx_factory);
+    f.push(video::mjpeg_factory);
+    #[cfg(feature = "mpeg2")]
+    f.push(video::mpeg2_factory);
+    f
+}
 
 fn factories() -> &'static RwLock<Vec<VideoDecoderFactory>> {
     static F: std::sync::OnceLock<RwLock<Vec<VideoDecoderFactory>>> = std::sync::OnceLock::new();
-    F.get_or_init(|| RwLock::new(BUILTIN_FACTORIES.to_vec()))
+    F.get_or_init(|| RwLock::new(builtin_factories()))
 }
 
 /// Register a video decoder factory (tried before previously registered ones).
@@ -141,7 +157,7 @@ pub fn make_video_decoder(entry: &filmcraft_isobmff::SampleEntry) -> Result<Box<
 pub fn software_video_decoder(
     entry: &filmcraft_isobmff::SampleEntry,
 ) -> Result<Box<dyn VideoDecoder>> {
-    for f in BUILTIN_FACTORIES {
+    for f in builtin_factories() {
         if let Some(r) = f(entry) {
             return r;
         }
@@ -155,33 +171,36 @@ pub fn software_video_decoder(
 /// Openers for the engine's media pool (MP4/MOV, Matroska/WebM, MXF, Ogg Opus/Vorbis, MPEG TS/PS and
 /// MPEG-1/2 video elementary streams, APV raw bitstreams, YUV4MPEG2, standalone audio).
 pub fn openers() -> Vec<filmcraft_media::Opener> {
-    vec![
-        mp4::opener,
-        mkv::opener,
-        mxf::opener,
-        ogg::opener,
-        mpeg::opener,
-        apv::opener,
-        avi::opener,
+    let mut o: Vec<filmcraft_media::Opener> = vec![mp4::opener, mkv::opener];
+    #[cfg(feature = "mxf")]
+    o.push(mxf::opener);
+    o.push(ogg::opener);
+    o.push(mpeg::opener);
+    #[cfg(feature = "apv")]
+    o.push(apv::opener);
+    o.extend([
+        avi::opener as filmcraft_media::Opener,
         y4m::opener,
         audio::opener,
-    ]
+    ]);
+    o
 }
 
 fn reader_registry() -> &'static RwLock<Vec<filmcraft_media::ReaderOpener>> {
     static R: std::sync::OnceLock<RwLock<Vec<filmcraft_media::ReaderOpener>>> =
         std::sync::OnceLock::new();
     R.get_or_init(|| {
-        RwLock::new(vec![
-            mp4::reader_opener,
-            mkv::reader_opener,
-            mxf::reader_opener,
-            ogg::reader_opener,
-            mpeg::reader_opener,
-            apv::reader_opener,
-            y4m::reader_opener,
-            avi::reader_opener,
-        ])
+        let mut r: Vec<filmcraft_media::ReaderOpener> =
+            vec![mp4::reader_opener, mkv::reader_opener];
+        #[cfg(feature = "mxf")]
+        r.push(mxf::reader_opener);
+        r.push(ogg::reader_opener);
+        r.push(mpeg::reader_opener);
+        #[cfg(feature = "apv")]
+        r.push(apv::reader_opener);
+        r.push(y4m::reader_opener);
+        r.push(avi::reader_opener);
+        RwLock::new(r)
     })
 }
 

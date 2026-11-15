@@ -332,6 +332,9 @@ impl AviSource {
             // presentation order comes from the pictures' order counts. A first look at the start
             // of the stream decides whether it reorders at all (reading every frame's header is the
             // cost of a reordering stream only).
+            // Modified (filmcraft/PATCHES.md): the order counts are read by the MXF module, so only with the `mxf`
+            // feature; without it the pictures keep their stored order.
+            #[cfg(feature = "mxf")]
             if codec == VCodec::H264
                 && let Some(si) = vstream
             {
@@ -677,8 +680,19 @@ impl VideoSamples for AviVideo<'_> {
         );
         match &self.src.vcodec {
             VCodec::Jpeg => make_video_decoder(&SampleEntry::jpeg(w, h)),
+            // Modified (filmcraft/PATCHES.md): H.264 and HEVC only with their features.
+            #[cfg(feature = "h264")]
             VCodec::H264 => Ok(Box::new(crate::video::H264Decoder::annexb())),
+            #[cfg(not(feature = "h264"))]
+            VCodec::H264 => Err(CodecError::Unsupported(
+                "H.264 video is not in this build".into(),
+            )),
+            #[cfg(feature = "hevc")]
             VCodec::Hevc => Ok(Box::new(crate::video::HevcDecoder::annexb())),
+            #[cfg(not(feature = "hevc"))]
+            VCodec::Hevc => Err(CodecError::Unsupported(
+                "HEVC video is not in this build".into(),
+            )),
             VCodec::Raw(f) => Ok(Box::new(RawVideoDecoder::new(
                 *f,
                 v.width,

@@ -32,6 +32,12 @@ path = "src/lib.rs"
 name = "oracle"
 path = "tests/oracle.rs"
 
+# Modified for the Beebeeb desktop app's media helper, 2026-11-15 (filmcraft/PATCHES.md): E-AC-3 is a feature of its own,
+# ON by default (the crate as published).
+[features]
+default = ["eac3"]
+eac3 = []
+
 [dependencies.thiserror]
 version = "2"
 

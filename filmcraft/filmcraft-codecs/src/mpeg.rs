@@ -24,7 +24,16 @@ use filmcraft_time::{FrameRate, Tick};
 
 use crate::CodecError;
 use crate::gop::{GopCache, VideoSamples};
-use crate::video::{H264Decoder, HevcDecoder, Mpeg2Decoder, VideoDecoder};
+// Modified for the Beebeeb desktop app's media helper, 2026-11-15 (filmcraft/PATCHES.md): MPEG-1/2, H.264 and HEVC
+// video are decoded only with their features; without one, a stream of it is "no decoder" (its container still names
+// the codec) and nothing of that decoder is in the build.
+#[cfg(feature = "h264")]
+use crate::video::H264Decoder;
+#[cfg(feature = "hevc")]
+use crate::video::HevcDecoder;
+#[cfg(feature = "mpeg2")]
+use crate::video::Mpeg2Decoder;
+use crate::video::VideoDecoder;
 
 impl filmcraft_mpegts::ByteSource for crate::Src {
     fn len(&self) -> u64 {
@@ -117,10 +126,26 @@ pub struct MpegSource {
 
 fn vkind(c: &Codec) -> Option<VKind> {
     match c {
+        #[cfg(feature = "mpeg2")]
         Codec::Mpeg1Video | Codec::Mpeg2Video => Some(VKind::Mpeg2),
+        #[cfg(feature = "h264")]
         Codec::H264 => Some(VKind::H264),
+        #[cfg(feature = "hevc")]
         Codec::Hevc => Some(VKind::Hevc),
         _ => None,
+    }
+}
+
+/// An Annex B decoder of `kind` in this build (H.264, HEVC); a kind whose feature is off is `Unsupported`.
+fn annexb_decoder(kind: VKind) -> crate::Result<Box<dyn VideoDecoder>> {
+    match kind {
+        #[cfg(feature = "h264")]
+        VKind::H264 => Ok(Box::new(H264Decoder::annexb())),
+        #[cfg(feature = "hevc")]
+        VKind::Hevc => Ok(Box::new(HevcDecoder::annexb())),
+        other => Err(CodecError::Unsupported(format!(
+            "{other:?} video is not in this build"
+        ))),
     }
 }
 
@@ -322,7 +347,16 @@ impl MpegSource {
         Ok(src)
     }
 
+    /// A raw MPEG-1/2 video elementary stream: not in this build (the `mpeg2` feature is off).
+    #[cfg(not(feature = "mpeg2"))]
+    fn open_es(_name: &str, _bytes: crate::Src) -> crate::Result<Self> {
+        Err(CodecError::Unsupported(
+            "MPEG-1/2 video is not in this build".into(),
+        ))
+    }
+
     /// A raw MPEG-1/2 video elementary stream (no timestamps: GOP / temporal reference order).
+    #[cfg(feature = "mpeg2")]
     fn open_es(name: &str, bytes: crate::Src) -> crate::Result<Self> {
         let all: Arc<[u8]> = filmcraft_media::reader::read_range(
             &*bytes.0,
@@ -474,6 +508,13 @@ impl MpegSource {
         let rate;
         color = filmcraft_color::ColorInfo::REC709;
         match v.kind {
+            #[cfg(not(feature = "mpeg2"))]
+            VKind::Mpeg2 => {
+                return Err(CodecError::Unsupported(
+                    "MPEG-1/2 video is not in this build".into(),
+                ));
+            }
+            #[cfg(feature = "mpeg2")]
             VKind::Mpeg2 => {
                 let info = filmcraft_mpeg2v::probe(&first).ok_or_else(|| {
                     CodecError::Decode(
@@ -506,11 +547,7 @@ impl MpegSource {
             }
             VKind::H264 | VKind::Hevc => {
                 // decode up to the first frame for size, aspect and colour
-                let mut dec: Box<dyn VideoDecoder> = if v.kind == VKind::H264 {
-                    Box::new(H264Decoder::annexb())
-                } else {
-                    Box::new(HevcDecoder::annexb())
-                };
+                let mut dec: Box<dyn VideoDecoder> = annexb_decoder(v.kind)?;
                 let mut frame = None;
                 for i in 0..v.units.len().min(32) {
                     if let Some(f) = dec
@@ -1001,11 +1038,11 @@ impl VideoSamples for MpegVideo<'_> {
         if let Some(why) = &self.src.unsupported_video {
             return Err(CodecError::Unsupported(why.clone()));
         }
-        Ok(match self.v.kind {
-            VKind::Mpeg2 => Box::new(Mpeg2Decoder::new(self.v.header.clone())),
-            VKind::H264 => Box::new(H264Decoder::annexb()),
-            VKind::Hevc => Box::new(HevcDecoder::annexb()),
-        })
+        match self.v.kind {
+            #[cfg(feature = "mpeg2")]
+            VKind::Mpeg2 => Ok(Box::new(Mpeg2Decoder::new(self.v.header.clone()))),
+            kind => annexb_decoder(kind),
+        }
     }
 }
 

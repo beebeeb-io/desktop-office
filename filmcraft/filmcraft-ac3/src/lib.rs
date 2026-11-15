@@ -20,6 +20,12 @@
 
 #![cfg_attr(not(test), deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable))]
 
+#[cfg(feature = "eac3")]
+mod eac3;
+// Modified for the Beebeeb desktop app's media helper, 2026-11-15 (filmcraft/PATCHES.md): without the `eac3` feature
+// E-AC-3 is refused, not decoded.
+#[cfg(not(feature = "eac3"))]
+#[path = "eac3_off.rs"]
 mod eac3;
 mod tables;
 

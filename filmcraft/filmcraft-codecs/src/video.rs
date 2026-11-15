@@ -5,6 +5,9 @@ use filmcraft_isobmff::{CodecConfig, SampleEntry};
 
 use crate::{CodecError, Result};
 
+// Modified for the Beebeeb desktop app's media helper, 2026-11-15 (filmcraft/PATCHES.md): each decoder of a format that
+// is a Cargo feature of this crate (H.264, HEVC, ProRes, APV, DNxHD, MPEG-1/2 video) is compiled only with it.
+
 /// A decoded picture with its presentation timestamp (track timescale).
 pub struct DecodedFrame {
     pub pts: i64,
@@ -56,6 +59,7 @@ pub trait VideoDecoder: Send {
 /// Worker threads of the H.264 decoders made for background work (thumbnails): a frame-threaded
 /// 4K decoder holds `threads + 2` pictures in flight (~0.5 GB with 16 threads), and the frame
 /// workers already decode different files in parallel.
+#[cfg(feature = "h264")]
 const BACKGROUND_H264_THREADS: usize = 2;
 
 /// NAL unit headers of a length-prefixed (avcC / hvcC) sample: the first two bytes of each unit.
@@ -312,6 +316,7 @@ pub fn mjpeg_factory(e: &SampleEntry) -> Option<Result<Box<dyn VideoDecoder>>> {
 }
 
 /// Our pure-Rust H.264 decoder (frame-threaded).
+#[cfg(feature = "h264")]
 pub struct H264Decoder {
     avcc: Vec<u8>,
     dec: filmcraft_h264::Decoder,
@@ -321,6 +326,7 @@ pub struct H264Decoder {
     threads: usize,
 }
 
+#[cfg(feature = "h264")]
 impl H264Decoder {
     /// The worker threads for a decoder made now.
     fn threads_now() -> usize {
@@ -404,6 +410,7 @@ impl H264Decoder {
 /// An H.264 decoder error as a [`CodecError`]: a feature the decoder does not implement (High
 /// 4:2:2, field pictures...) is [`CodecError::Unsupported`], so the media pool shows the
 /// unreadable slate instead of a black picture (#626); anything else is a decode error.
+#[cfg(feature = "h264")]
 fn h264_error(e: filmcraft_h264::Error) -> CodecError {
     match e {
         filmcraft_h264::Error::Unsupported(what) => {
@@ -413,6 +420,7 @@ fn h264_error(e: filmcraft_h264::Error) -> CodecError {
     }
 }
 
+#[cfg(feature = "h264")]
 impl VideoDecoder for H264Decoder {
     fn decode(&mut self, sample: &[u8], pts: i64) -> Result<Vec<DecodedFrame>> {
         let pics = self.dec.decode(sample, pts).map_err(h264_error)?;
@@ -455,15 +463,18 @@ impl VideoDecoder for H264Decoder {
 
 /// The H.264 decoder's output planes come from the frames the caches evicted
 /// (`filmcraft_frame::pool`) instead of the allocator.
+#[cfg(feature = "h264")]
 fn recycle_h264_planes() {
     filmcraft_h264::set_plane_allocator(filmcraft_frame::pool::take_u8);
 }
 
 /// Worker threads each H.264 decoder uses (frame threading; 1 on wasm).
+#[cfg(feature = "h264")]
 pub fn h264_threads() -> usize {
     filmcraft_h264::default_threads()
 }
 
+#[cfg(feature = "h264")]
 pub fn h264_factory(e: &SampleEntry) -> Option<Result<Box<dyn VideoDecoder>>> {
     match &e.codec {
         CodecConfig::Avc(a) => {
@@ -474,6 +485,7 @@ pub fn h264_factory(e: &SampleEntry) -> Option<Result<Box<dyn VideoDecoder>>> {
 }
 
 /// Our pure-Rust HEVC decoder (Main / Main 10, frame-threaded).
+#[cfg(feature = "hevc")]
 pub struct HevcDecoder {
     hvcc: Vec<u8>,
     dec: filmcraft_hevc::Decoder,
@@ -481,6 +493,7 @@ pub struct HevcDecoder {
     highest_tid: Option<u8>,
 }
 
+#[cfg(feature = "hevc")]
 impl HevcDecoder {
     pub fn new(hvcc: Vec<u8>) -> Result<Self> {
         let dec = filmcraft_hevc::Decoder::from_hvcc(&hvcc).map_err(hevc_error)?;
@@ -560,6 +573,7 @@ impl HevcDecoder {
 }
 
 /// An HEVC decoder error as a [`CodecError`] (see [`h264_error`]).
+#[cfg(feature = "hevc")]
 fn hevc_error(e: filmcraft_hevc::Error) -> CodecError {
     match e {
         filmcraft_hevc::Error::Unsupported(what) => {
@@ -569,6 +583,7 @@ fn hevc_error(e: filmcraft_hevc::Error) -> CodecError {
     }
 }
 
+#[cfg(feature = "hevc")]
 impl VideoDecoder for HevcDecoder {
     fn decode(&mut self, sample: &[u8], pts: i64) -> Result<Vec<DecodedFrame>> {
         let pics = self.dec.decode(sample, pts).map_err(hevc_error)?;
@@ -605,6 +620,7 @@ impl VideoDecoder for HevcDecoder {
     }
 }
 
+#[cfg(feature = "hevc")]
 pub fn hevc_factory(e: &SampleEntry) -> Option<Result<Box<dyn VideoDecoder>>> {
     match &e.codec {
         CodecConfig::Hevc(c) => {
@@ -989,8 +1005,10 @@ pub fn av1_factory(e: &SampleEntry) -> Option<Result<Box<dyn VideoDecoder>>> {
 }
 
 /// Our ProRes decoder (every frame is intra; slices decode in parallel).
+#[cfg(feature = "prores")]
 pub struct ProResDecoder;
 
+#[cfg(feature = "prores")]
 impl VideoDecoder for ProResDecoder {
     fn decode(&mut self, sample: &[u8], pts: i64) -> Result<Vec<DecodedFrame>> {
         use std::sync::Arc;
@@ -1038,6 +1056,7 @@ impl VideoDecoder for ProResDecoder {
     }
 }
 
+#[cfg(feature = "prores")]
 pub fn prores_factory(e: &SampleEntry) -> Option<Result<Box<dyn VideoDecoder>>> {
     matches!(e.codec, CodecConfig::ProRes { .. })
         .then(|| Ok(Box::new(ProResDecoder) as Box<dyn VideoDecoder>))
@@ -1045,9 +1064,11 @@ pub fn prores_factory(e: &SampleEntry) -> Option<Result<Box<dyn VideoDecoder>>> 
 
 /// Our APV (Advanced Professional Video, RFC 9924) decoder (every frame is intra; tiles decode in
 /// parallel).
+#[cfg(feature = "apv")]
 pub struct ApvDecoder;
 
 /// Convert a decoded APV frame to a [`VideoFrame`].
+#[cfg(feature = "apv")]
 pub fn apv_to_video_frame(f: filmcraft_apv::Frame) -> VideoFrame {
     use std::sync::Arc;
     let chroma = match f.chroma {
@@ -1104,6 +1125,7 @@ pub fn apv_to_video_frame(f: filmcraft_apv::Frame) -> VideoFrame {
     }
 }
 
+#[cfg(feature = "apv")]
 impl VideoDecoder for ApvDecoder {
     fn decode(&mut self, sample: &[u8], pts: i64) -> Result<Vec<DecodedFrame>> {
         let f =
@@ -1126,16 +1148,19 @@ impl VideoDecoder for ApvDecoder {
     }
 }
 
+#[cfg(feature = "apv")]
 pub fn apv_factory(e: &SampleEntry) -> Option<Result<Box<dyn VideoDecoder>>> {
     matches!(e.codec, CodecConfig::Apv(_))
         .then(|| Ok(Box::new(ApvDecoder) as Box<dyn VideoDecoder>))
 }
 
 /// Our DNxHD / DNxHR (VC-3) decoder (every frame is intra; macroblock rows decode in parallel).
+#[cfg(feature = "dnx")]
 pub struct DnxDecoder;
 
 /// Convert a decoded VC-3 frame to a [`VideoFrame`]. RGB (4:4:4) frames are converted to
 /// BT.709 video-range Y'CbCr 4:4:4 at the coded depth.
+#[cfg(feature = "dnx")]
 pub fn dnx_to_video_frame(f: filmcraft_dnx::Frame) -> VideoFrame {
     use std::sync::Arc;
     let chroma = match f.chroma {
@@ -1201,6 +1226,7 @@ pub fn dnx_to_video_frame(f: filmcraft_dnx::Frame) -> VideoFrame {
     }
 }
 
+#[cfg(feature = "dnx")]
 impl VideoDecoder for DnxDecoder {
     fn decode(&mut self, sample: &[u8], pts: i64) -> Result<Vec<DecodedFrame>> {
         let f =
@@ -1223,12 +1249,14 @@ impl VideoDecoder for DnxDecoder {
     }
 }
 
+#[cfg(feature = "dnx")]
 pub fn dnx_factory(e: &SampleEntry) -> Option<Result<Box<dyn VideoDecoder>>> {
     matches!(e.codec, CodecConfig::Dnx { .. })
         .then(|| Ok(Box::new(DnxDecoder) as Box<dyn VideoDecoder>))
 }
 
 /// Our MPEG-1 / MPEG-2 video decoder (Main / 4:2:2 profile, field and frame pictures).
+#[cfg(feature = "mpeg2")]
 pub struct Mpeg2Decoder {
     dec: filmcraft_mpeg2v::Decoder,
     /// Sequence header (and extensions) fed after a reset, so a random-access point without its
@@ -1236,6 +1264,7 @@ pub struct Mpeg2Decoder {
     header: Vec<u8>,
 }
 
+#[cfg(feature = "mpeg2")]
 impl Mpeg2Decoder {
     pub fn new(header: Vec<u8>) -> Self {
         let mut d = Self {
@@ -1254,6 +1283,7 @@ impl Mpeg2Decoder {
 
 /// The sequence header with its extensions at the start of an MPEG video sample (up to the first
 /// GOP or picture start code).
+#[cfg(feature = "mpeg2")]
 pub fn mpeg2_sequence_header(sample: &[u8]) -> Option<Vec<u8>> {
     let codes = filmcraft_mpeg2v::start_codes(sample);
     let (start, _) = *codes.iter().find(|c| c.1 == 0xB3)?;
@@ -1266,6 +1296,7 @@ pub fn mpeg2_sequence_header(sample: &[u8]) -> Option<Vec<u8>> {
 
 /// Convert a decoded MPEG-1/2 picture. Colour comes from the sequence display extension
 /// (defaults: BT.601 for SD, BT.709 for HD); the pixel aspect from the aspect ratio code.
+#[cfg(feature = "mpeg2")]
 pub fn mpeg2_to_video_frame(p: filmcraft_mpeg2v::Picture) -> VideoFrame {
     use std::sync::Arc;
     let info = &p.info;
@@ -1312,6 +1343,7 @@ pub fn mpeg2_to_video_frame(p: filmcraft_mpeg2v::Picture) -> VideoFrame {
 }
 
 /// "YUV 4:2:2 8-bit, interlaced (upper field first)" for the media info.
+#[cfg(feature = "mpeg2")]
 pub fn mpeg2_pixel_format(
     info: &filmcraft_mpeg2v::SequenceInfo,
     field_order: Option<filmcraft_mpeg2v::FieldOrder>,
@@ -1329,6 +1361,7 @@ pub fn mpeg2_pixel_format(
     format!("YUV {sub} 8-bit{scan}")
 }
 
+#[cfg(feature = "mpeg2")]
 impl VideoDecoder for Mpeg2Decoder {
     fn decode(&mut self, sample: &[u8], pts: i64) -> Result<Vec<DecodedFrame>> {
         let pics = self
@@ -1372,6 +1405,7 @@ impl VideoDecoder for Mpeg2Decoder {
 
 /// QuickTime / MP4 sample entries carrying MPEG-1/2 video: XDCAM (EX/HD/HD422), IMX, HDV,
 /// generic `mp2v`/`mpg2`, and `mp4v` whose `esds` object type is MPEG-1/2 video (0x60-0x65, 0x6A).
+#[cfg(feature = "mpeg2")]
 fn is_mpeg2_entry(fourcc: &[u8; 4], raw: &[u8]) -> bool {
     match fourcc {
         b"mp2v" | b"mpg2" | b"m2v1" | b"mpg1" | b"m1v " | b"m1v1" | b"mx3n" | b"mx4n" | b"mx5n"
@@ -1383,6 +1417,7 @@ fn is_mpeg2_entry(fourcc: &[u8; 4], raw: &[u8]) -> bool {
 }
 
 /// objectTypeIndication of the DecoderConfigDescriptor inside an `esds` box in `raw`.
+#[cfg(feature = "mpeg2")]
 fn esds_object_type(raw: &[u8]) -> Option<u8> {
     let at = raw.windows(4).position(|w| w == b"esds")? + 8;
     let mut p = at;
@@ -1422,6 +1457,7 @@ fn esds_object_type(raw: &[u8]) -> Option<u8> {
     raw.get(p).copied()
 }
 
+#[cfg(feature = "mpeg2")]
 pub fn mpeg2_factory(e: &SampleEntry) -> Option<Result<Box<dyn VideoDecoder>>> {
     match &e.codec {
         CodecConfig::Unknown { fourcc, raw } if is_mpeg2_entry(&fourcc.0, raw) => {

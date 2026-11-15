@@ -248,7 +248,17 @@ impl NalStreamInfo {
         }
     }
 
+    /// From an `avcC` (AVCDecoderConfigurationRecord) payload. Modified (filmcraft/PATCHES.md): without the `h264`
+    /// feature the record is not parsed and the stream is refused.
+    #[cfg(not(feature = "h264"))]
+    pub fn from_avcc(_avcc: &[u8]) -> Result<Self> {
+        Err(CodecError::Unsupported(
+            "H.264 video is not in this build".into(),
+        ))
+    }
+
     /// From an `avcC` (AVCDecoderConfigurationRecord) payload.
+    #[cfg(feature = "h264")]
     pub fn from_avcc(avcc: &[u8]) -> Result<Self> {
         if avcc.len() < 7 || avcc[0] != 1 {
             return Err(CodecError::Decode("bad avcC record".into()));
@@ -303,7 +313,17 @@ impl NalStreamInfo {
         })
     }
 
+    /// From an `hvcC` (HEVCDecoderConfigurationRecord) payload. Modified (filmcraft/PATCHES.md): without the `hevc`
+    /// feature the record is not parsed and the stream is refused.
+    #[cfg(not(feature = "hevc"))]
+    pub fn from_hvcc(_hvcc: &[u8]) -> Result<Self> {
+        Err(CodecError::Unsupported(
+            "HEVC video is not in this build".into(),
+        ))
+    }
+
     /// From an `hvcC` (HEVCDecoderConfigurationRecord) payload.
+    #[cfg(feature = "hevc")]
     pub fn from_hvcc(hvcc: &[u8]) -> Result<Self> {
         if hvcc.len() < 23 || hvcc[0] != 1 {
             return Err(CodecError::Decode("bad hvcC record".into()));

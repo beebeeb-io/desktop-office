@@ -367,6 +367,8 @@ impl Mp4Source {
                 (info.width, info.height) = (info.height, info.width);
                 info.par = (info.par.1, info.par.0);
             }
+            // Modified (filmcraft/PATCHES.md): only with the `dnx` feature.
+            #[cfg(feature = "dnx")]
             if matches!(entry.codec, CodecConfig::Dnx { .. }) {
                 // the sample entry doesn't say which VC-3 compression ID it is: read the first frame header
                 let s0 = &t.samples[0];
@@ -385,6 +387,8 @@ impl Mp4Source {
                     info.has_alpha = h.alpha;
                 }
             }
+            // Modified (filmcraft/PATCHES.md): only with the `prores` feature.
+            #[cfg(feature = "prores")]
             if matches!(entry.codec, CodecConfig::ProRes { .. }) {
                 // a 4444 fourcc doesn't mean the frames carry alpha (alpha_channel_type does): read the first frame header
                 let s0 = &t.samples[0];
@@ -827,6 +831,7 @@ fn codec_label(c: &CodecConfig) -> String {
                 .get(c.seq_profile as usize)
                 .unwrap_or(&"Main")
         ),
+        #[cfg(feature = "apv")]
         CodecConfig::Apv(a) => match filmcraft_apv::Profile::from_idc(a.profile_idc) {
             Some(p) => p.name().into(),
             None => "APV".into(),
@@ -871,12 +876,17 @@ fn yuv_label(chroma_format_idc: u32, bits: u32) -> String {
 /// extension is not trusted over the SPS: muxers have been seen writing `chroma_format` 0 (4:0:0)
 /// into it for 4:2:0 files, which labelled them "4:0:0" (#1959). The profile alone can't say (High
 /// 4:2:2 is 8 or 10-bit, High 10 can be 8-bit).
+///
+/// Modified (filmcraft/PATCHES.md): the SPS is parsed only with the `h264` feature; without it, the extension.
 fn avc_format(a: &filmcraft_isobmff::AvcConfig) -> Option<(u32, u32)> {
-    let from_sps = a.sps.first().and_then(|n| n.get(1..)).and_then(|rbsp| {
-        filmcraft_h264::params::Sps::parse(&filmcraft_bitstream::unescape_rbsp(rbsp)).ok()
-    });
-    if let Some(sps) = from_sps {
-        return Some((sps.chroma_format_idc, sps.bit_depth_luma));
+    #[cfg(feature = "h264")]
+    {
+        let from_sps = a.sps.first().and_then(|n| n.get(1..)).and_then(|rbsp| {
+            filmcraft_h264::params::Sps::parse(&filmcraft_bitstream::unescape_rbsp(rbsp)).ok()
+        });
+        if let Some(sps) = from_sps {
+            return Some((sps.chroma_format_idc, sps.bit_depth_luma));
+        }
     }
     // reserved bits set: '111111' chroma_format, '11111' bit_depth_luma_minus8 (else not an extension)
     if !matches!(a.profile, 66 | 77 | 88)
@@ -891,14 +901,19 @@ fn avc_format(a: &filmcraft_isobmff::AvcConfig) -> Option<(u32, u32)> {
 
 /// `chroma_format_idc` and luma bit depth of an HEVC track: from its first SPS, which is what the
 /// decoder decodes, else the `hvcC` record's own fields (which a muxer may leave at 0, i.e. "4:0:0").
+///
+/// Modified (filmcraft/PATCHES.md): the SPS is parsed only with the `hevc` feature; without it, the record's fields.
 fn hevc_format(h: &filmcraft_isobmff::HevcConfig) -> (u32, u32) {
-    let from_sps = h.sps().first().and_then(|n| n.get(2..)).and_then(|rbsp| {
-        filmcraft_hevc::params::Sps::parse(&filmcraft_bitstream::unescape_rbsp(rbsp)).ok()
-    });
-    match from_sps {
-        Some(sps) => (sps.chroma_format_idc, sps.bit_depth_luma),
-        None => (h.chroma_format_idc as u32, h.bit_depth_luma as u32),
+    #[cfg(feature = "hevc")]
+    {
+        let from_sps = h.sps().first().and_then(|n| n.get(2..)).and_then(|rbsp| {
+            filmcraft_hevc::params::Sps::parse(&filmcraft_bitstream::unescape_rbsp(rbsp)).ok()
+        });
+        if let Some(sps) = from_sps {
+            return (sps.chroma_format_idc, sps.bit_depth_luma);
+        }
     }
+    (h.chroma_format_idc as u32, h.bit_depth_luma as u32)
 }
 
 fn pixfmt_label(c: &CodecConfig) -> String {
@@ -918,6 +933,7 @@ fn pixfmt_label(c: &CodecConfig) -> String {
             };
             format!("YUV {sub} {}-bit", c.bit_depth.max(8))
         }
+        #[cfg(feature = "apv")]
         CodecConfig::Apv(a) => {
             let chroma = filmcraft_apv::ChromaFormat::from_idc(a.chroma_format_idc)
                 .unwrap_or(filmcraft_apv::ChromaFormat::Yuv422);

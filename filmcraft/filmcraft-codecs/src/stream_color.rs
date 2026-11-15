@@ -58,6 +58,14 @@ pub fn from_codec_config(codec: &CodecConfig) -> Option<ColorCodes> {
     }
 }
 
+// Modified (filmcraft/PATCHES.md): the SPS is parsed only with the `h264` / `hevc` feature; without it the stream
+// has no colour codes of its own and the container's are used.
+#[cfg(not(feature = "h264"))]
+fn avc(_c: &AvcConfig) -> Option<ColorCodes> {
+    None
+}
+
+#[cfg(feature = "h264")]
 fn avc(c: &AvcConfig) -> Option<ColorCodes> {
     // NAL header byte: nal_unit_type 7 is an SPS
     let nal = c
@@ -76,6 +84,12 @@ fn avc(c: &AvcConfig) -> Option<ColorCodes> {
     })
 }
 
+#[cfg(not(feature = "hevc"))]
+fn hevc(_c: &HevcConfig) -> Option<ColorCodes> {
+    None
+}
+
+#[cfg(feature = "hevc")]
 fn hevc(c: &HevcConfig) -> Option<ColorCodes> {
     // two-byte NAL header: nal_unit_type 33 is an SPS (whatever array the record files it under)
     let nal = c

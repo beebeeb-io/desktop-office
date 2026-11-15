@@ -421,6 +421,10 @@ fn codec_label(c: &Codec) -> String {
         Codec::Vp8 => "VP8".into(),
         Codec::Vp9 { .. } => "VP9".into(),
         Codec::Av1 { .. } => "AV1".into(),
+        // Modified (filmcraft/PATCHES.md): the APV profile name only with the `apv` feature.
+        #[cfg(not(feature = "apv"))]
+        Codec::Apv { .. } => "APV".into(),
+        #[cfg(feature = "apv")]
         Codec::Apv { apvc } => match filmcraft_isobmff::ApvConfig::parse(apvc)
             .ok()
             .and_then(|a| filmcraft_apv::Profile::from_idc(a.profile_idc))
