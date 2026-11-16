@@ -20,10 +20,18 @@ wordcraft-fonts  = { path = "../wordcraft/crates/fonts" }
 # GridCraft: the xlsx reader gives us the Workbook with sheets.
 gridcraft-xlsx  = { path = "../gridcraft/crates/xlsx" }
 gridcraft-model = { path = "../gridcraft/crates/model" }
+gridcraft-numfmt = { path = "../gridcraft/crates/numfmt" }
+gridcraft-calc  = { path = "../gridcraft/crates/calc" }
+gridcraft-chart = { path = "../gridcraft/crates/chart" }
+# The value, address and formula types the cells and their formulas are made of (both already in
+# the closure, under the reader and the model).
+gridcraft-core    = { path = "../gridcraft/crates/core" }
+gridcraft-formula = { path = "../gridcraft/crates/formula" }
 
 # DeckCraft: the pptx reader gives us the Presentation with slides.
 deckcraft-pptx  = { path = "../deckcraft/crates/pptx" }
 deckcraft-model = { path = "../deckcraft/crates/model" }
+deckcraft-render = { path = "../deckcraft/crates/render" }
 
 # The pre-scan reads a package's central directory with the same zip crate the three readers use,
 # so it sees the entries they would see. Same version and features as theirs (zip 3.0.0 is already
