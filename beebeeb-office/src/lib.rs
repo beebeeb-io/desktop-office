@@ -8,8 +8,9 @@
 //!
 //! - [`Document`]: Word documents (`.docx`, `.doc`): pages rendered as RGBA8 into a buffer the
 //!   caller sized, the outline, the word count.
-//! - [`Workbook`], [`Deck`]: spreadsheets and presentations, the final API; not built yet (every
-//!   open says [`OpenError::Unsupported`]).
+//! - [`Workbook`]: workbooks (`.xlsx`, `.xlsm`, `.xls`): sheets in tab order, cell blocks with their shown
+//!   text, value and formula, merges, frozen panes, and charts and pictures rendered as RGBA8.
+//! - [`Deck`]: presentations (`.pptx`, `.pptm`, `.ppsx`): slides rendered as RGBA8, their sizes and titles.
 //! - [`Limits`] and [`prescan`]: the viewer contract's limits; a container over them is refused
 //!   from what it declares, before any reader inflates it.
 //! - [`open_docx`], [`open_xlsx`], [`open_pptx`]: page, sheet and slide counts.
