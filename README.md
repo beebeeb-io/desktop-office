@@ -1,7 +1,8 @@
 # desktop-office
 
 The office engines behind the Beebeeb desktop app's viewer and editor for Word, Excel and PowerPoint files.
-This repository holds three upstream open-source projects, unchanged, as pinned git subtrees, and our own crate
+This repository holds three upstream open-source projects as pinned git subtrees, unchanged but for the local changes
+listed under "Local changes" below, and our own crate
 `beebeeb-office` on top. The two contracts are in the desktop repository:
 `docs/superpowers/specs/2026-11-12-native-office-viewer.md` (merged) and
 `docs/superpowers/specs/2026-11-12-native-office-editor.md`.
@@ -19,10 +20,20 @@ requests: build, test (3 tests), `scripts/check-closure.sh` (0 network crates in
 | `deckcraft/` | `github.com/storytold/deckcraft` | `v0.18.1` | `7cc73ab1895ed2e30c8afbcada20c70b9ea0a440` | `5aa3ce6744e927f694dc694acdba2deaac10ca91` |
 
 - Each folder was added with `git subtree add --prefix=<name> https://github.com/storytold/<name> <tag>`, history
-  kept. For 3 of 3 folders the tree in this repository equals the tree of the upstream tag
-  (`git rev-parse HEAD:<name>` against `git rev-parse <commit>^{tree}`).
+  kept. At the add, for 3 of 3 folders the tree in this repository equalled the tree of the upstream tag
+  (`git rev-parse HEAD:<name>` against `git rev-parse <commit>^{tree}`). Since then `wordcraft/` carries the local
+  changes below; `gridcraft/` and `deckcraft/` still equal their tags.
 - These are the versions the viewer spike measured (desktop PR 351).
 - `deny.toml` is our dependency policy (below). `audit/2026-11-12/` holds the raw output of the first audit.
+
+### Local changes
+
+Changes of ours inside a subtree, each with the test that fails without it. An upstream update carries each one
+forward, or drops it once the new tag has the same fix.
+
+| Folder | File | Change | Test |
+|---|---|---|---|
+| `wordcraft/` | `crates/docx/src/read/story/drawing.rs` | A picture's `a:blip` and crop are read from the `mc:AlternateContent` branch the reader takes (a Choice whose requirements it knows, else the Fallback; ECMA-376 Part 3 §10.2), not from the first Choice. A Choice needing the Mac drawing namespace held a PDF the renderer cannot draw (`corpus/docx/Bug51170.docx`). | `beebeeb-office/tests/docx_alternate_content.rs` |
 
 ```mermaid
 flowchart LR
@@ -153,7 +164,8 @@ repository, `spikes/2477-office-editor-throwaway/evidence/run-linux.log`.
 
 - Undo and redo exist only in the engine crates. For WordCraft that means either a small change of ours inside the
   subtree (it makes the font store an optional feature) or editing below the engine with our own history. Which one
-  is the owner's decision; until then `main` holds upstream unchanged and "must not link `wordcraft-engine`" stands.
+  is the owner's decision; until then `main` holds no change of ours to the engine crates and "must not link
+  `wordcraft-engine`" stands.
 - An earlier line in this file says the WordCraft path below the engine "has not been built or run by us". It has
   now: the spike opened, edited, saved and reopened 12 of 12 Word files through it.
 - The engines can write files and start other programs on their own (`wordcraft-engine`: options, templates, fonts,

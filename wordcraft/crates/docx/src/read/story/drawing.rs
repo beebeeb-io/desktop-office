@@ -275,9 +275,10 @@ impl Reader<'_> {
         }
     }
 
-    /// A picture: the first `a:blip` in `pic` and its crop.
+    /// A picture: the first `a:blip` in `pic` and its crop, from the branch of any alternate
+    /// content the reader takes ([`find_chosen`]).
     fn read_pic(&mut self, pic: &El, rels: &Rels, w: f32, h: f32, alt: String, mut float: Float) -> Option<InlineObject> {
-        let blip = pic.find("a:blip")?;
+        let blip = find_chosen(pic, "a:blip")?;
         float.set_spin(xfrm_spin(pic.find("pic:spPr")));
         let Some(embed) = blip.attr("r:embed") else {
             // A linked picture holds no copy: nothing to draw, and nothing is fetched.
@@ -289,7 +290,7 @@ impl Reader<'_> {
         };
         let media = self.media_for(rels, embed)?;
         let mut crop = [0.0f32; 4];
-        if let Some(sr) = pic.find("a:srcRect") {
+        if let Some(sr) = find_chosen(pic, "a:srcRect") {
             for (i, n) in ["l", "t", "r", "b"].iter().enumerate() {
                 if let Some(v) = sr.attr(n).and_then(int)
                     && let Some(slot) = crop.get_mut(i)
@@ -596,6 +597,31 @@ impl Reader<'_> {
         self.flush_pending(&mut inner, &mut blocks);
         self.doc.add_part(PartKind::TextBox, blocks)
     }
+}
+
+/// The first descendant of `e` named `name`, depth-first like [`El::find`], but inside an
+/// `mc:AlternateContent` only in the branch the reader takes ([`children_of_choice`]: a Choice
+/// whose requirements it understands, else the Fallback; ECMA-376 Part 3 §10.2). `El::find`
+/// would look into the first Choice even when it needs a namespace the reader does not know: a
+/// picture fill whose Choice asks for the Mac drawing namespace and holds a PDF, with a PNG as
+/// its Fallback, would be read as the PDF, which cannot be drawn.
+fn find_chosen<'a>(e: &'a El, name: &str) -> Option<&'a El> {
+    fn go<'a>(e: &'a El, name: &str, depth: usize) -> Option<&'a El> {
+        if depth > crate::xml::MAX_DEPTH {
+            return None;
+        }
+        for c in e.els() {
+            if c.name == name {
+                return Some(c);
+            }
+            let inner = if c.name == "mc:AlternateContent" { children_of_choice(c) } else { Some(c) };
+            if let Some(found) = inner.and_then(|i| go(i, name, depth + 1)) {
+                return Some(found);
+            }
+        }
+        None
+    }
+    go(e, name, 0)
 }
 
 /// The `mc:Choice` holding an Office 2016 chart (`cx:chart`) in an `mc:AlternateContent`.
