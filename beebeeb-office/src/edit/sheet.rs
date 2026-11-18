@@ -44,7 +44,7 @@ pub(super) fn open(bytes: &[u8], limits: &Limits) -> Result<Box<dyn Any + Send>,
     let mut s = Session::new();
     s.add_document(DocState::from_saved(book, None, "Book.xlsx".to_string(), Trust::FromFile));
     let w = SheetSession { s, limits: *limits, drawings_left_out, binary, view: Mutex::new(None) };
-    w.sync_view()?;
+    w.sync_view().map_err(|_| OpenError::Damaged)?;
     Ok(Box::new(w))
 }
 
