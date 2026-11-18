@@ -21,7 +21,7 @@ use serde::Serialize;
 
 use crate::{CmdError, Session};
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "font-store"))]
 mod store;
 
 /// Longest locale tag taken, in bytes (BCP 47 tags in practice stay under 20).
@@ -71,25 +71,25 @@ pub struct Installed {
 /// Stops a download. On the desktop it is the font store's own flag, which a download watches
 /// even while the server sends nothing.
 #[derive(Clone, Debug, Default)]
-pub struct Cancel(#[cfg(not(target_arch = "wasm32"))] pub(crate) craft_font_store::Cancel, #[cfg(target_arch = "wasm32")] Arc<AtomicBool>);
+pub struct Cancel(#[cfg(all(not(target_arch = "wasm32"), feature = "font-store"))] pub(crate) craft_font_store::Cancel, #[cfg(any(target_arch = "wasm32", not(feature = "font-store")))] Arc<AtomicBool>);
 
 impl Cancel {
     pub fn new() -> Self {
         Self::default()
     }
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "font-store"))]
     pub fn cancel(&self) {
         self.0.cancel();
     }
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(all(not(target_arch = "wasm32"), feature = "font-store"))]
     pub fn is_cancelled(&self) -> bool {
         self.0.is_cancelled()
     }
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(any(target_arch = "wasm32", not(feature = "font-store")))]
     pub fn cancel(&self) {
         self.0.store(true, Ordering::Relaxed);
     }
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(any(target_arch = "wasm32", not(feature = "font-store")))]
     pub fn is_cancelled(&self) -> bool {
         self.0.load(Ordering::Relaxed)
     }
@@ -155,7 +155,7 @@ pub fn set_backend(backend: Option<Arc<dyn Backend>>) {
 /// never can). The pack index is the pinned one, or `CRAFT_LANGUAGE_PACK_INDEX` (a URL or a path,
 /// for testing packs before they are published), which the font store reads itself. Returns
 /// whether there is a store folder.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "font-store"))]
 pub fn use_font_store(user: bool) -> bool {
     match store::FontStoreBackend::new(user) {
         Some(b) => {
@@ -167,7 +167,7 @@ pub fn use_font_store(user: bool) -> bool {
 }
 
 /// [`use_font_store`] with the store in `dir` instead of the person's (`ui_shot`, tests).
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "font-store"))]
 pub fn use_font_store_in(dir: PathBuf, user: bool) {
     set_backend(Some(Arc::new(store::FontStoreBackend::in_dir(dir, user))));
 }

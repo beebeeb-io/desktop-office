@@ -34,6 +34,7 @@ forward, or drops it once the new tag has the same fix.
 | Folder | File | Change | Test |
 |---|---|---|---|
 | `wordcraft/` | `crates/docx/src/read/story/drawing.rs` | A picture's `a:blip` and crop are read from the `mc:AlternateContent` branch the reader takes (a Choice whose requirements it knows, else the Fallback; ECMA-376 Part 3 §10.2), not from the first Choice. A Choice needing the Mac drawing namespace held a PDF the renderer cannot draw (`corpus/docx/Bug51170.docx`). | `beebeeb-office/tests/docx_alternate_content.rs` |
+| `wordcraft/` | `crates/engine/Cargo.toml`, `crates/engine/src/packs.rs` | The font and language-pack downloader (`craft-font-store`, `craft-font-catalog`, so `ureq` and `rustls`) is behind a `font-store` feature, on by default (upstream behaviour). The editor builds without it. See "Editor" below. | `scripts/check-editor-closure.sh` (with `EDITOR_FLAGS=` it must fail) |
 
 ```mermaid
 flowchart LR
@@ -45,6 +46,27 @@ flowchart LR
   D --> V
   V --> H[the desktop app's sandboxed render helper]
 ```
+
+## Editor
+
+`beebeeb-office` has the feature `edit` (default): `beebeeb_office::edit`, the editing API, on `wordcraft-engine` and
+`gridcraft-engine`. `edit-slides` (not default) adds `deckcraft-engine`, which brings the MPL-2.0 `symphonia` crates;
+it stays off, and `deny.toml` allows no MPL, until the owner accepts MPL-2.0 (contract Q4). Without it slides
+answer `Unsupported`. Only whole files in bytes go in and out; no engine command that touches files, processes,
+print, speech, fonts, templates from disk or recovery is reachable (`Op` is a closed list).
+
+WordCraft's engine links a downloader (`ureq`, `rustls`) for language packs. `patches/wordcraft-engine-font-store-optional.patch`
+puts it behind a `font-store` feature (default on, so upstream is unchanged); `beebeeb-office` depends on the engine
+with `default-features = false`. `scripts/check-editor-closure.sh` fails if a network crate (the list in `deny.toml`) is
+in the closure of the WordCraft engine without the feature, or of `beebeeb-office` with `edit` or `edit-slides`.
+`EDITOR_FLAGS= scripts/check-editor-closure.sh` checks WordCraft's default features instead and must fail
+(`ureq`, `rustls`): CI runs both.
+
+**At an upstream bump** of `wordcraft/`: after the subtree pull, run `git apply --directory=wordcraft
+patches/wordcraft-engine-font-store-optional.patch`, then the closure check. If the patch no longer applies,
+`patches/make-wordcraft-engine-patch.py <wordcraft dir>` redoes the same edit (the `cfg` lines in
+`crates/engine/src/packs.rs` and the optional dependencies in its `Cargo.toml`); regenerate the patch with
+`git diff --relative=wordcraft -- wordcraft/crates/engine > patches/wordcraft-engine-font-store-optional.patch`. Drop the patch once upstream has the feature.
 
 ## Licences
 

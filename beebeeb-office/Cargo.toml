@@ -8,6 +8,15 @@ description = "The office viewer and editor crate for the Beebeeb desktop app"
 
 [workspace]
 
+[features]
+# The editor (WordCraft and GridCraft engines). WordCraft is built WITHOUT its `font-store` feature
+# (patches/wordcraft-engine-font-store-optional.patch), so no downloader and no TLS stack is linked.
+default = ["edit"]
+edit = ["dep:wordcraft-engine", "dep:gridcraft-engine"]
+# DeckCraft's engine brings the MPL-2.0 `symphonia` crates. Off until Guus accepts MPL-2.0 (contract Q4);
+# without it slides answer `Unsupported`. Nothing MPL is allowed in deny.toml.
+edit-slides = ["edit", "dep:deckcraft-engine"]
+
 [dependencies]
 # WordCraft below wordcraft-engine (which reaches a network client): reader → layout → render.
 wordcraft-docx   = { path = "../wordcraft/crates/docx" }
@@ -38,3 +47,14 @@ deckcraft-render = { path = "../deckcraft/crates/render" }
 # in the closure): no new crate.
 zip = { version = "3.0.0", default-features = false, features = ["deflate"] }
 
+# The editors. WordCraft without default features (no font-store: ureq/rustls stay out); GridCraft as is.
+wordcraft-engine = { path = "../wordcraft/crates/engine", default-features = false, optional = true }
+gridcraft-engine = { path = "../gridcraft/crates/engine", optional = true }
+# Behind `edit-slides` only (MPL-2.0 via symphonia).
+deckcraft-engine = { path = "../deckcraft/crates/engine", optional = true }
+
+# The three upstream workspaces patch krilla (PDF export, reached by the engines) to the craft-libs fork; a
+# [patch] in a subtree is not read here, so it is repeated. Same rev as in wordcraft/Cargo.toml and
+# deckcraft/Cargo.toml (a bump of either moves this line).
+[patch.crates-io]
+krilla = { git = "https://github.com/storytold/craft-libs", rev = "6e03f65bf45181db77ba6229716e6624db9eb25b" }
