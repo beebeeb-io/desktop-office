@@ -15,9 +15,13 @@
 //!   relationship of the same type the engine wrote itself.
 //! - Everything the engine wrote stays byte for byte; with nothing to carry the saved bytes come back as they are.
 //!
-//! Parts it deliberately does not carry: `calcChain` and thumbnails (stale after any edit), media and drawings
-//! the document XML names by `r:id` (the engine rewrote that XML), notes slides, embedded workbooks and OLE
-//! objects, printer settings. A macro project that cannot be carried makes the save `Unsupported`: a macro is
+//! - a deck's printer settings and revision info (`ppt/presentation.xml` names neither by `r:id`).
+//!
+//! Parts it deliberately does not carry: `calcChain` and thumbnails (stale after any edit, and a thumbnail of
+//! a deleted slide would keep showing it), media and drawings the document XML names by `r:id` (the engine
+//! rewrote that XML), embedded workbooks and OLE objects. Notes slides are not carried either: the engine
+//! writes a slide's notes itself (the text survives an edit); only a notes slide with no text is not written,
+//! and the slides renumber under an edit, so a part kept by name could land on the wrong slide. A macro project that cannot be carried makes the save `Unsupported`: a macro is
 //! never dropped silently.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -34,8 +38,17 @@ const REL_WORD_VBA_DATA: &str = "http://schemas.microsoft.com/office/2006/relati
 const REL_CHART_STYLE: &str = "http://schemas.microsoft.com/office/2011/relationships/chartStyle";
 const REL_CHART_COLORS: &str = "http://schemas.microsoft.com/office/2011/relationships/chartColorStyle";
 
+const REL_PRINTER_SETTINGS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/printerSettings";
+const REL_REVISION_INFO: &str = "http://schemas.microsoft.com/office/2015/10/relationships/revisionInfo";
+
 /// Relationship types whose target is carried.
-const CARRIED: &[&str] = &[REL_VBA, REL_WORD_VBA_DATA, REL_CHART_STYLE, REL_CHART_COLORS];
+const CARRIED: &[&str] = &[REL_VBA, REL_WORD_VBA_DATA, REL_CHART_STYLE, REL_CHART_COLORS, REL_PRINTER_SETTINGS, REL_REVISION_INFO];
+
+/// Types carried only from the presentation part: in a workbook or a document the XML names a printer
+/// settings part by `r:id` (the engine rewrote that XML), in a deck nothing does.
+fn only_from_presentation(ty: &str) -> bool {
+    ty == REL_PRINTER_SETTINGS || ty == REL_REVISION_INFO
+}
 
 type Parts = BTreeMap<String, Vec<u8>>;
 
@@ -126,6 +139,9 @@ fn plan(orig: &Package, out: &Package) -> Vec<Carried> {
                 continue;
             }
             let Some(target) = resolve(orig, &source, &rel.target) else { continue };
+            if only_from_presentation(&rel.ty) && source != "ppt/presentation.xml" {
+                continue;
+            }
             // The edit removed (or renamed) the part the relationship hangs on.
             if !source.is_empty() && !out.parts.contains_key(&source) {
                 continue;

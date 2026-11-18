@@ -263,3 +263,71 @@ fn edit_slide_corpus_decks() {
     eprintln!("edit_slide corpus: {opened} opened, {saved} saved, {refused} refused by the carry");
     assert!(opened >= 10, "the corpus opens: {opened}");
 }
+
+/// The non-empty speaker notes of every slide, in order (empty ones dropped).
+fn notes(bytes: &[u8]) -> Vec<String> {
+    let (p, _) = deckcraft_pptx::import_checked(bytes).expect("reads");
+    p.slides.iter().map(|s| s.notes.text()).filter(|t| !t.trim().is_empty()).collect()
+}
+
+/// Speaker notes are data the user wrote: they survive the real edit + save path (open, type over a title,
+/// add a slide, duplicate a slide, save through `preserve::carry`, reopen), each on its own slide.
+#[test]
+fn edit_slide_speaker_notes_survive_edit_and_save() {
+    let mut p = deck_model(&[(LayoutType::Title, "Q3 plan"), (LayoutType::TitleOnly, "Roadmap"), (LayoutType::TitleOnly, "Thanks")]);
+    for (i, t) in [(0usize, "Say hello, then the numbers"), (2usize, "Thank the team; remind about the survey")] {
+        let mut s = (*p.slides[i]).clone();
+        s.notes = TextBody::from_text(t);
+        p.slides[i] = Arc::new(s);
+    }
+    let bytes = deckcraft_pptx::export(&p).expect("writes");
+    assert_eq!(notes(&bytes), ["Say hello, then the numbers", "Thank the team; remind about the survey"]);
+
+    let mut doc = open(&bytes);
+    let (x, y) = title_point(&bytes, 1);
+    doc.apply(&Op::SelectShape { slide: 1, x_pt: x, y_pt: y }).unwrap();
+    doc.apply(&Op::SelectAll).unwrap();
+    doc.apply(&Op::InsertText("Plan B".into())).unwrap();
+    doc.apply(&Op::NewSlide { layout: None }).unwrap();
+    doc.apply(&Op::DuplicateSlide(0)).unwrap();
+    let saved = doc.save().expect("saves");
+
+    let (after, _) = deckcraft_pptx::import_checked(&saved).expect("reads");
+    assert_eq!(after.slides.len(), 5);
+    let got = notes(&saved);
+    for want in ["Say hello, then the numbers", "Thank the team; remind about the survey"] {
+        assert!(got.iter().any(|n| n == want), "notes {want:?} survive: {got:?}");
+    }
+    // The first slide still carries its own notes, and the notes of "Thanks" sit on "Thanks".
+    assert_eq!(after.slides[0].notes.text(), "Say hello, then the numbers");
+    let thanks = after.slides.iter().find(|s| s.shapes.iter().any(|sh| sh.text.as_ref().is_some_and(|t| t.text() == "Thanks"))).expect("Thanks");
+    assert_eq!(thanks.notes.text(), "Thank the team; remind about the survey");
+    // And again through a second edit + save of the saved file.
+    let again = open(&saved).save().expect("saves again");
+    assert!(notes(&again).len() >= 2);
+}
+
+/// Real decks: every non-empty speaker note of every corpus deck is still in the file after the same edits.
+#[test]
+fn edit_slide_corpus_speaker_notes_survive() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../corpus/pptx");
+    let mut with_notes = 0;
+    let mut files: Vec<_> = std::fs::read_dir(&dir).expect("corpus/pptx").flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|e| e == "pptx")).collect();
+    files.sort();
+    for path in files {
+        let bytes = std::fs::read(&path).unwrap();
+        let Ok(mut doc) = EditDoc::open(EditKind::Pptx, &bytes, &Limits::default()) else { continue };
+        let before = notes(&bytes);
+        if doc.apply(&Op::NewSlide { layout: None }).is_err() || doc.apply(&Op::DuplicateSlide(0)).is_err() {
+            continue;
+        }
+        let saved = doc.save().unwrap_or_else(|e| panic!("{}: {e:?}", path.display()));
+        let mut got = notes(&saved);
+        for n in &before {
+            let at = got.iter().position(|g| g == n).unwrap_or_else(|| panic!("{}: a speaker note is gone after the edit", path.display()));
+            got.remove(at);
+        }
+        with_notes += usize::from(!before.is_empty());
+    }
+    eprintln!("edit_slide corpus notes: {with_notes} decks with notes kept");
+}
