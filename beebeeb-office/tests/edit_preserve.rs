@@ -258,6 +258,21 @@ fn edit_preserve_a_plain_docx_comes_back_with_no_new_parts() {
     assert!(content_type(&p, "word/document.xml").unwrap().contains("document.main+xml"));
 }
 
+#[cfg(feature = "edit-slides")]
+#[test]
+fn edit_preserve_pptm_keeps_its_macro_project_through_the_deck_engine() {
+    let (_, deck) = corpus("pptx").into_iter().find(|(n, _)| n == "copy-slide-demo.pptx").expect("corpus/pptx/copy-slide-demo.pptx");
+    let main_ct = "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml";
+    let bytes = with_macro(&deck, "ppt/presentation.xml", main_ct, PPTM_CT);
+    let mut doc = EditDoc::open(EditKind::Pptx, &bytes, &Limits::default()).expect("a .pptm opens for editing");
+    let _ = doc.apply(&Op::InsertText("ZQX ".into()));
+    let out = parts_of(&doc.save().expect("saves with its macro"));
+    assert_eq!(out.get("ppt/vbaProject.bin").map(Vec::as_slice), Some(VBA), "project byte-equal");
+    assert_eq!(target_of(&out, "ppt/presentation.xml", VBA_REL).as_deref(), Some("ppt/vbaProject.bin"));
+    assert_eq!(content_type(&out, "ppt/presentation.xml").as_deref(), Some(PPTM_CT));
+    assert_valid(&out, "edited pptm");
+}
+
 #[test]
 fn edit_preserve_xlsm_keeps_its_macro_project() {
     // A workbook the sheet engine writes, made macro-enabled; Excel's engine keeps the project itself.
@@ -278,17 +293,6 @@ fn edit_preserve_xlsm_keeps_its_macro_project() {
 }
 
 // ---- hand-made packages, through `carry` ----------------------------------------------------------------
-
-fn pkg(entries: &[(&str, &str)], binary: &[(&str, &[u8])]) -> Parts {
-    let mut p = Parts::new();
-    for (n, t) in entries {
-        p.insert((*n).to_string(), t.as_bytes().to_vec());
-    }
-    for (n, b) in binary {
-        p.insert((*n).to_string(), b.to_vec());
-    }
-    p
-}
 
 fn types(overrides: &[(&str, &str)]) -> String {
     let o: String = overrides.iter().map(|(n, t)| format!("<Override PartName=\"/{n}\" ContentType=\"{t}\"/>")).collect();
@@ -470,10 +474,15 @@ fn corpus_run(kind: EditKind, ext: &str, op: &Op) -> (usize, usize, usize) {
                 saved += 1;
                 let (a, b) = (parts_of(&bytes), parts_of(&out));
                 // Whatever came back from the original is byte-equal to it.
-                for n in b.keys().filter(|n| n.contains("/charts/style") || n.contains("/charts/colors")) {
+                let style = |n: &&String| n.contains("/charts/style") || n.contains("/charts/colors");
+                let kept = a.keys().filter(style).filter(|n| b.contains_key(*n)).count();
+                for n in b.keys().filter(style) {
                     if let Some(orig) = a.get(n) {
                         assert_eq!(&b[n], orig, "{name}: {n} byte-equal");
                     }
+                }
+                if a.keys().filter(style).count() > 0 {
+                    eprintln!("edit_preserve corpus: {name}: chart style parts {} in the original, {kept} kept", a.keys().filter(style).count());
                 }
                 assert!(EditDoc::open(kind, &out, &Limits::default()).is_ok(), "{name}: reopens");
             }
