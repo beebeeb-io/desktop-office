@@ -96,6 +96,30 @@ impl Deck {
         })
     }
 
+    /// The deck the editor shows: the engine's current model in place of the one read from the file.
+    /// Sizes, titles and the per-slide caches are worked out again; a slide the reader dropped at open
+    /// stays remembered (`lost_slides`), and the per-slide picture check is cleared (indices moved).
+    #[cfg(feature = "edit-slides")]
+    pub(crate) fn replace_presentation(&mut self, pres: Presentation) {
+        let size = (pres.slide_size.width as f32, pres.slide_size.height as f32);
+        let slides = pres.slides.len();
+        self.info = DeckInfo {
+            slides: slides as u32,
+            sizes_pt: vec![size; slides],
+            titles: pres.slides.iter().map(|s| title_text(&s.title())).collect(),
+        };
+        self.missing = (0..slides).map(|_| OnceLock::new()).collect();
+        self.lost_pictures = vec![false; slides];
+        self.decodes = pres.media.iter().filter(|m| !m.data.is_empty()).map(|m| (m.id, OnceLock::new())).collect();
+        self.pres = pres;
+    }
+
+    /// The model, for the editor's session.
+    #[cfg(feature = "edit-slides")]
+    pub(crate) fn presentation(&self) -> &Presentation {
+        &self.pres
+    }
+
     /// The slide count, the slide sizes and the titles.
     pub fn info(&self) -> DeckInfo {
         self.info.clone()

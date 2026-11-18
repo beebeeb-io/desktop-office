@@ -40,10 +40,7 @@ impl EditDoc {
                 sheet::open(bytes)?;
                 None
             }
-            EditKind::Pptx => {
-                slide::open(bytes)?;
-                None
-            }
+            EditKind::Pptx => Some(slide::open(bytes, limits)?),
         };
         Ok(EditDoc { kind, original: bytes.to_vec(), revision: 0, engine })
     }
@@ -119,12 +116,18 @@ impl EditDoc {
         if self.kind == EditKind::Docx {
             return word::info(self);
         }
+        if self.kind == EditKind::Pptx {
+            return slide::info(self);
+        }
         Err(EditError::Unsupported)
     }
 
     pub fn render_size(&self, page: u32, scale: f32, region: Option<Rect>) -> Result<(u32, u32), RenderError> {
         if self.kind == EditKind::Docx {
             return word::render_size(self, page, scale, region);
+        }
+        if self.kind == EditKind::Pptx {
+            return slide::render_size(self, page, scale, region);
         }
         Err(RenderError::Engine)
     }
@@ -133,12 +136,18 @@ impl EditDoc {
         if self.kind == EditKind::Docx {
             return word::render_page(self, page, scale, region, out);
         }
+        if self.kind == EditKind::Pptx {
+            return slide::render_page(self, page, scale, region, out);
+        }
         Err(RenderError::Engine)
     }
 
     pub fn outline(&self) -> Vec<OutlineEntry> {
         if self.kind == EditKind::Docx {
             return word::outline(self);
+        }
+        if self.kind == EditKind::Pptx {
+            return slide::outline(self);
         }
         Vec::new()
     }
