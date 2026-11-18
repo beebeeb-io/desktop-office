@@ -76,7 +76,7 @@ fn rels(xml: &str) -> Vec<(String, String, String)> {
         let i = tag.find(&key).map(|i| i + key.len()).unwrap_or_else(|| panic!("{k} in {tag}"));
         tag[i..i + tag[i..].find('"').unwrap()].to_string()
     };
-    xml.split("<Relationship ").skip(1).map(|t| (attr(t, "Id"), attr(t, "Type"), attr(t, "Target"))).collect()
+    xml.split("<Relationship ").skip(1).map(|t| { let t = format!(" {t}"); (attr(&t, "Id"), attr(&t, "Type"), attr(&t, "Target")) }).collect()
 }
 
 /// The part a relationship in `source`'s rels points at.
