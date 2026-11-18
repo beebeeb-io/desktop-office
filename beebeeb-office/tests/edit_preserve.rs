@@ -482,6 +482,7 @@ fn corpus_run(kind: EditKind, ext: &str, op: &Op) -> (usize, usize, usize) {
                     }
                 }
                 if a.keys().filter(style).count() > 0 {
+                    eprintln!("DEBUG {name}: written chart parts {:?}", b.keys().filter(|n| n.contains("chart") || n.contains("embed")).collect::<Vec<_>>());
                     eprintln!("edit_preserve corpus: {name}: chart style parts {} in the original, {kept} kept", a.keys().filter(style).count());
                 }
                 assert!(EditDoc::open(kind, &out, &Limits::default()).is_ok(), "{name}: reopens");
