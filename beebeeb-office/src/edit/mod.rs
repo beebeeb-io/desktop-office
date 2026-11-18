@@ -45,9 +45,15 @@ impl EditDoc {
     /// A new document from a built-in template (never from disk). Only Docs have more than `Blank`.
     pub fn new_from(kind: EditKind, template: Template) -> Result<EditDoc, EditError> {
         let bytes = templates::build(kind, template)?;
+        let limits = Limits::default();
         let engine: Option<Box<dyn std::any::Any + Send>> = match kind {
-            EditKind::Docx => Some(word::open(&bytes, &Limits::default()).map_err(|_| EditError::Engine)?),
-            _ => None,
+            EditKind::Docx => Some(word::open(&bytes, &limits).map_err(|_| EditError::Engine)?),
+            EditKind::Xlsx => Some(sheet::open(&bytes, &limits).map_err(|_| EditError::Engine)?),
+            // Without `edit-slides` the slide engine answers Unsupported.
+            EditKind::Pptx => Some(slide::open(&bytes, &limits).map_err(|e| match e {
+                OpenError::Unsupported => EditError::Unsupported,
+                _ => EditError::Engine,
+            })?),
         };
         Ok(EditDoc { kind, original: bytes, revision: 0, engine })
     }
