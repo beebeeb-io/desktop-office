@@ -11,11 +11,14 @@
 //! - [`Workbook`]: workbooks (`.xlsx`, `.xlsm`, `.xls`): sheets in tab order, cell blocks with their shown
 //!   text, value and formula, merges, frozen panes, and charts and pictures rendered as RGBA8.
 //! - [`Deck`]: presentations (`.pptx`, `.pptm`, `.ppsx`): slides rendered as RGBA8, their sizes and titles.
+//! - `edit` (feature `edit`, on by default): the editing API, [`edit::EditDoc`]; slides only with `edit-slides`.
 //! - [`Limits`] and [`prescan`]: the viewer contract's limits; a container over them is refused
 //!   from what it declares, before any reader inflates it.
 //! - [`open_docx`], [`open_xlsx`], [`open_pptx`]: page, sheet and slide counts.
 
 mod doc;
+#[cfg(feature = "edit")]
+pub mod edit;
 mod error;
 pub mod limits;
 #[doc(hidden)]
