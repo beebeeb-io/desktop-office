@@ -68,6 +68,28 @@ patches/wordcraft-engine-font-store-optional.patch`, then the closure check. If 
 `crates/engine/src/packs.rs` and the optional dependencies in its `Cargo.toml`); regenerate the patch with
 `git diff --relative=wordcraft -- wordcraft/crates/engine > patches/wordcraft-engine-font-store-optional.patch`. Drop the patch once upstream has the feature.
 
+### Editor: what a save keeps
+
+A save is the engine's package plus `edit/preserve.rs`'s `carry(original, written)`. `carry` adds back whole parts the
+engine dropped, from the file the document was opened from; it never reads or writes XML inside a part (only
+`[Content_Types].xml` and the `.rels` files) and never refuses because a part is missing. Tests: `tests/edit_preserve.rs`
+(`cargo test --locked edit_preserve`; the pptx corpus and the `.pptm` test need `--features edit-slides`).
+
+| What | Result |
+|---|---|
+| Macro project (`vbaProject.bin`, its signature parts, Word's `vbaData.xml`) in `.docm` and `.pptm` | Carried byte-equal, with its relationship, its content type and the macro-enabled content type of the main part. Tested through the engines on a `.docm` and (with `edit-slides`) a `.pptm`. |
+| Macro project in `.xlsm` | Kept by GridCraft; byte-equal, referenced, macro-enabled main type (tested). `carry` covers it too. |
+| A macro project that cannot be carried | The save answers `Unsupported`. A macro is never dropped silently. |
+| Chart style and colour parts (`chartStyle`, `chartColorStyle`) | DeckCraft keeps them itself (renamed `kept2.xml` and so on, with their relationships). `carry` brings them back only for a chart the saved package still has under the same name, and only when the engine wrote no such relationship. |
+| `calcChain`, `docProps/thumbnail.jpeg` | Skipped on purpose: stale after any edit (Excel and PowerPoint rebuild them). |
+| Speaker notes (`notesSlides`, with `notesMaster`) | Skipped: DeckCraft does not write them, and bringing them back needs `r:id` references inside slide and presentation XML. A saved deck loses its speaker notes. |
+| Transitions inside `mc:AlternateContent`, other XML the engine rewrites | Noted, skipped (inside a part). |
+| Pictures, drawings, `printerSettings`, VML drawings, SmartArt data rels, `tableSingleCells`, chartsheets and charts GridCraft does not model, OLE objects, an embedded workbook the engine drops | Skipped: the part is named by `r:id` from XML the engine rewrote, so bringing it back would leave an orphan or a dangling reference. |
+| Linked (external) pictures | Not touched: a relationship with no part; the engines write the ones they model. |
+
+On the 72 Microsoft-Office rows of `corpus/`, the old guard refused 3 of 24 `.docx`, 14 of 24 `.xlsx` and 24 of 24 `.pptx`
+on save (any part gone from the saved package); now none is refused.
+
 ## Licences
 
 - All three projects are licensed **MIT OR Apache-2.0**. Each folder keeps its own `LICENSE-MIT`, `LICENSE-APACHE`,
