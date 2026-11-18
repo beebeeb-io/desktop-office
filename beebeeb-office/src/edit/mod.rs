@@ -36,10 +36,7 @@ impl EditDoc {
     pub fn open(kind: EditKind, bytes: &[u8], limits: &Limits) -> Result<EditDoc, OpenError> {
         let engine: Option<Box<dyn std::any::Any + Send>> = match kind {
             EditKind::Docx => Some(word::open(bytes, limits)?),
-            EditKind::Xlsx => {
-                sheet::open(bytes)?;
-                None
-            }
+            EditKind::Xlsx => Some(sheet::open(bytes, limits)?),
             EditKind::Pptx => {
                 slide::open(bytes)?;
                 None
@@ -150,18 +147,32 @@ impl EditDoc {
         0
     }
 
+    /// The sheets and their used extents (Sheets only).
+    pub fn sheets(&self) -> Result<crate::SheetsInfo, EditError> {
+        if self.kind == EditKind::Xlsx {
+            return sheet::sheets(self);
+        }
+        Err(EditError::Unsupported)
+    }
+
     pub fn cells(&self, sheet: u32, range: CellRange) -> Result<CellBlock, EditError> {
-        let _ = (sheet, range);
+        if self.kind == EditKind::Xlsx {
+            return sheet::cells(self, sheet, range);
+        }
         Err(EditError::Unsupported)
     }
 
     pub fn anchor_size(&self, sheet: u32, anchor: u32, scale: f32) -> Result<(u32, u32), RenderError> {
-        let _ = (sheet, anchor, scale);
+        if self.kind == EditKind::Xlsx {
+            return sheet::anchor_size(self, sheet, anchor, scale);
+        }
         Err(RenderError::Engine)
     }
 
     pub fn render_anchor(&self, sheet: u32, anchor: u32, scale: f32, out: &mut [u8]) -> Result<RenderInfo, RenderError> {
-        let _ = (sheet, anchor, scale, out);
+        if self.kind == EditKind::Xlsx {
+            return sheet::render_anchor(self, sheet, anchor, scale, out);
+        }
         Err(RenderError::Engine)
     }
 }
