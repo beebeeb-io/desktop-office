@@ -481,8 +481,21 @@ fn the_viewer_links_no_media_or_engine_crate() {
         "reqwest",
         "hyper",
     ];
-    let found: Vec<&str> = names.iter().copied().filter(|n| banned.contains(n) || n.starts_with("symphonia")).collect();
-    assert!(found.is_empty(), "media, engine or network crates in the lock: {found:?}");
+    // The lock lists the optional `deckcraft-engine` (feature `edit-slides`, off by default), so the lock alone cannot
+    // show what is linked: ask cargo for the default build's graph (the same instrument as scripts/check-closure.sh).
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
+    let tree = std::process::Command::new(cargo)
+        .args(["tree", "--locked", "-e", "normal", "--prefix", "none", "-f", "{p}", "-p", "beebeeb-office", "--manifest-path"])
+        .arg(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml"))
+        .output()
+        .expect("run cargo tree");
+    assert!(tree.status.success(), "cargo tree failed");
+    let tree = String::from_utf8(tree.stdout).expect("utf-8");
+    let linked: Vec<&str> = tree.lines().filter_map(|l| l.split_whitespace().next()).collect();
+    assert!(linked.len() >= 100, "the graph lists {} packages", linked.len());
+    assert!(linked.contains(&"deckcraft-pptx"), "the graph lists deckcraft-pptx");
+    let found: Vec<&str> = linked.iter().copied().filter(|n| banned.contains(n) || n.starts_with("symphonia")).collect();
+    assert!(found.is_empty(), "media, engine or network crates in the build: {found:?}");
 }
 
 #[test]
