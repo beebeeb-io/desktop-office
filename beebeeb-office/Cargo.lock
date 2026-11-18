@@ -113,6 +113,7 @@ dependencies = [
  "gridcraft-model",
  "gridcraft-numfmt",
  "gridcraft-xlsx",
+ "serde_json",
  "wordcraft-doc",
  "wordcraft-docbin",
  "wordcraft-docx",

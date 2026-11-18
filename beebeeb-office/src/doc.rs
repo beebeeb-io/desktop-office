@@ -77,17 +77,7 @@ impl Document {
     /// written: linked pictures, templates and fields stay unresolved. Fonts embedded in the file
     /// are not loaded; the system's font folder may be read.
     pub fn open(kind: DocKind, bytes: &[u8], limits: &Limits) -> Result<Document, OpenError> {
-        crate::prescan(bytes, limits)?;
-        let reader = reader_for(kind, bytes)?;
-        probe::handed(bytes);
-        let mut doc = match reader {
-            DocKind::Docx => wordcraft_docx::read_with(bytes, &wordcraft_docx::ReadOptions::default()).map_err(from_docx)?,
-            DocKind::Doc => wordcraft_docbin::read(bytes).map_err(from_docbin)?,
-        };
-        // Every story and cell holds at least one paragraph, as the engine makes sure on open: an
-        // empty body still lays out as one blank page.
-        doc.ensure_nonempty();
-        let oversized = drop_oversized_pictures(&mut doc, limits);
+        let (doc, oversized) = read_model(kind, bytes, limits)?;
         // Laid out once; the paragraph cache is not needed after that.
         let layout = wordcraft_layout::layout(&doc, &mut LayoutCache::new(), &LayoutOptions::default());
         if layout.pages.is_empty() {
@@ -130,42 +120,7 @@ impl Document {
     /// raster ([`Rect`], pixels): at most `max_render_side_px` on each side, inside the page
     /// raster, and the page raster itself at most `wordcraft_render::MAX_SIDE` on a side.
     pub fn render_size(&self, page: u32, scale: f32, region: Option<Rect>) -> Result<(u32, u32), RenderError> {
-        let p = self.layout.pages.get(page as usize).ok_or(RenderError::NoSuchPage)?;
-        if !(scale.is_finite() && scale > 0.0) {
-            return Err(RenderError::BadScale);
-        }
-        // The same expressions `wordcraft_render::render_page` sizes its raster with.
-        let (pw, ph) = ((p.w * scale).ceil(), (p.h.min(1e6) * scale).ceil());
-        if !(pw.is_finite() && ph.is_finite()) {
-            return Err(RenderError::TooLarge);
-        }
-        let max_side = self.limits.max_render_side_px as f32;
-        match region {
-            None => {
-                if pw > max_side || ph > max_side {
-                    return Err(RenderError::TooLarge);
-                }
-                Ok((pw.max(1.0) as u32, ph.max(1.0) as u32))
-            }
-            Some(r) => {
-                if r.w == 0 || r.h == 0 {
-                    return Err(RenderError::BadRegion);
-                }
-                if r.w > self.limits.max_render_side_px || r.h > self.limits.max_render_side_px {
-                    return Err(RenderError::TooLarge);
-                }
-                let engine_max = wordcraft_render::MAX_SIDE as f32;
-                if pw > engine_max || ph > engine_max {
-                    return Err(RenderError::TooLarge);
-                }
-                let right = u64::from(r.x) + u64::from(r.w);
-                let bottom = u64::from(r.y) + u64::from(r.h);
-                if right as f64 > f64::from(pw.max(1.0)) || bottom as f64 > f64::from(ph.max(1.0)) {
-                    return Err(RenderError::BadRegion);
-                }
-                Ok((r.w, r.h))
-            }
-        }
+        render_size_of(&self.layout, &self.limits, page, scale, region)
     }
 
     /// Render `page` (0-based) at `scale` pixels per point, the whole page or one `region` of it,
@@ -177,63 +132,18 @@ impl Document {
     /// straight RGBA. The renderer draws into its own raster, which is then copied into `out`
     /// once.
     pub fn render_page(&self, page: u32, scale: f32, region: Option<Rect>, out: &mut [u8]) -> Result<RenderInfo, RenderError> {
-        let (w, h) = self.render_size(page, scale, region)?;
-        check_buffer(w, h, out)?;
-        let n = page as usize;
-        let p = self.layout.pages.get(n).ok_or(RenderError::NoSuchPage)?;
-        let rendered = match region {
-            None => wordcraft_render::render_page(&self.doc, p, scale, &self.opts),
-            Some(r) => {
-                // `render_area` takes the area in page points, of the layout's own rectangle type
-                // (copied from the page, so no geometry crate is named here). Half a pixel short
-                // on each side, so its `ceil(w * scale)` gives exactly `r.w` x `r.h` pixels.
-                let mut area = p.body;
-                area.x = r.x as f32 / scale;
-                area.y = r.y as f32 / scale;
-                area.w = (r.w as f32 - 0.5) / scale;
-                area.h = (r.h as f32 - 0.5) / scale;
-                wordcraft_render::render_area(&self.doc, p, area, scale, &self.opts)
-            }
-        };
-        if rendered.width != w || rendered.height != h || rendered.pixels.len() != out.len() {
-            return Err(RenderError::Engine);
-        }
-        out.copy_from_slice(&rendered.pixels);
-        Ok(RenderInfo { w, h, missing_content: self.missing_on(n) })
+        render_page_of(&self.doc, &self.layout, &self.opts, &self.limits, page, scale, region, out, |n| self.missing_on(n))
     }
 
     /// The headings (outline level 1 to 9) of the body, in order, with the page each starts on;
     /// at most [`MAX_OUTLINE_ENTRIES`].
     pub fn outline(&self) -> Vec<OutlineEntry> {
-        let mut out = Vec::new();
-        for (i, block) in self.doc.body.iter().enumerate() {
-            if out.len() >= MAX_OUTLINE_ENTRIES {
-                break;
-            }
-            let wordcraft_doc::Block::Para(p) = &**block else { continue };
-            let level = wordcraft_layout::outline::para_level(&self.doc, p);
-            if !(1..=9).contains(&level) {
-                continue;
-            }
-            let text = outline_text(&p.plain_text());
-            if text.is_empty() {
-                continue;
-            }
-            out.push(OutlineEntry { level, text, page: self.page_of_block(i) });
-        }
-        out
+        outline_of(&self.doc, &self.layout)
     }
 
     /// Words in the body, counted as Word's status bar counts them.
     pub fn word_count(&self) -> u32 {
         u32::try_from(self.doc.word_count()).unwrap_or(u32::MAX)
-    }
-
-    /// The page body block `i` starts on: the last page whose first block is at or before it.
-    fn page_of_block(&self, i: usize) -> u32 {
-        let after = self.layout.pages.partition_point(|p| p.first_block <= i);
-        let page = after.saturating_sub(1).min(self.layout.pages.len().saturating_sub(1));
-        page as u32
     }
 
     /// Whether something on page `n` cannot be drawn ([`RenderInfo::missing_content`]).
@@ -242,13 +152,153 @@ impl Document {
             return true;
         }
         let Some(slot) = self.missing.get(n) else { return false };
-        *slot.get_or_init(|| {
-            let display = &self.opts.display;
-            let glyphs = self.layout.missing_glyphs(&self.doc, display, Some(n..=n));
-            let (pictures, truncated, _) = wordcraft_layout::undecodable_pictures(&self.doc, &self.layout, Some(n..=n), display, StrictOutput::Png);
-            !glyphs.is_empty() || !pictures.is_empty() || truncated
-        })
+        *slot.get_or_init(|| page_missing(&self.doc, &self.layout, &self.opts, n))
     }
+}
+
+/// The read half of an open, shared with the editor: pre-scan, pick the reader, read, make every story
+/// non-empty and leave out oversized pictures. Returns the model and whether a picture was left out.
+pub(crate) fn read_model(kind: DocKind, bytes: &[u8], limits: &Limits) -> Result<(wordcraft_doc::Document, bool), OpenError> {
+    crate::prescan(bytes, limits)?;
+    let reader = reader_for(kind, bytes)?;
+    probe::handed(bytes);
+    let mut doc = match reader {
+        DocKind::Docx => wordcraft_docx::read_with(bytes, &wordcraft_docx::ReadOptions::default()).map_err(from_docx)?,
+        DocKind::Doc => wordcraft_docbin::read(bytes).map_err(from_docbin)?,
+    };
+    // Every story and cell holds at least one paragraph, as the engine makes sure on open: an
+    // empty body still lays out as one blank page.
+    doc.ensure_nonempty();
+    let oversized = drop_oversized_pictures(&mut doc, limits);
+    Ok((doc, oversized))
+}
+
+/// Whether the bytes are read by the `.doc` reader (the editor opens those for viewing only).
+pub(crate) fn reads_as_doc(kind: DocKind, bytes: &[u8]) -> bool {
+    matches!(reader_for(kind, bytes), Ok(DocKind::Doc))
+}
+
+/// Page sizes of a layout, each finite and above 0 (else `Damaged`).
+pub(crate) fn info_of(layout: &DocLayout) -> Result<DocInfo, OpenError> {
+    if layout.pages.is_empty() {
+        return Err(OpenError::Damaged);
+    }
+    let mut sizes_pt = Vec::with_capacity(layout.pages.len());
+    for p in &layout.pages {
+        if !(p.w.is_finite() && p.h.is_finite() && p.w > 0.0 && p.h > 0.0) {
+            return Err(OpenError::Damaged);
+        }
+        sizes_pt.push((p.w, p.h));
+    }
+    Ok(DocInfo { pages: layout.pages.len() as u32, sizes_pt })
+}
+
+/// [`Document::render_size`] over any layout.
+pub(crate) fn render_size_of(layout: &DocLayout, limits: &Limits, page: u32, scale: f32, region: Option<Rect>) -> Result<(u32, u32), RenderError> {
+    let p = layout.pages.get(page as usize).ok_or(RenderError::NoSuchPage)?;
+    if !(scale.is_finite() && scale > 0.0) {
+        return Err(RenderError::BadScale);
+    }
+    // The same expressions `wordcraft_render::render_page` sizes its raster with.
+    let (pw, ph) = ((p.w * scale).ceil(), (p.h.min(1e6) * scale).ceil());
+    if !(pw.is_finite() && ph.is_finite()) {
+        return Err(RenderError::TooLarge);
+    }
+    let max_side = limits.max_render_side_px as f32;
+    match region {
+        None => {
+            if pw > max_side || ph > max_side {
+                return Err(RenderError::TooLarge);
+            }
+            Ok((pw.max(1.0) as u32, ph.max(1.0) as u32))
+        }
+        Some(r) => {
+            if r.w == 0 || r.h == 0 {
+                return Err(RenderError::BadRegion);
+            }
+            if r.w > limits.max_render_side_px || r.h > limits.max_render_side_px {
+                return Err(RenderError::TooLarge);
+            }
+            let engine_max = wordcraft_render::MAX_SIDE as f32;
+            if pw > engine_max || ph > engine_max {
+                return Err(RenderError::TooLarge);
+            }
+            let right = u64::from(r.x) + u64::from(r.w);
+            let bottom = u64::from(r.y) + u64::from(r.h);
+            if right as f64 > f64::from(pw.max(1.0)) || bottom as f64 > f64::from(ph.max(1.0)) {
+                return Err(RenderError::BadRegion);
+            }
+            Ok((r.w, r.h))
+        }
+    }
+}
+
+/// [`Document::render_page`] over any model and layout; `missing` answers `missing_content` for the page.
+pub(crate) fn render_page_of(
+    doc: &wordcraft_doc::Document,
+    layout: &DocLayout,
+    opts: &RenderOptions,
+    limits: &Limits,
+    page: u32,
+    scale: f32,
+    region: Option<Rect>,
+    out: &mut [u8],
+    missing: impl FnOnce(usize) -> bool,
+) -> Result<RenderInfo, RenderError> {
+    let (w, h) = render_size_of(layout, limits, page, scale, region)?;
+    check_buffer(w, h, out)?;
+    let n = page as usize;
+    let p = layout.pages.get(n).ok_or(RenderError::NoSuchPage)?;
+    let rendered = match region {
+        None => wordcraft_render::render_page(doc, p, scale, opts),
+        Some(r) => {
+            // `render_area` takes the area in page points, of the layout's own rectangle type
+            // (copied from the page, so no geometry crate is named here). Half a pixel short
+            // on each side, so its `ceil(w * scale)` gives exactly `r.w` x `r.h` pixels.
+            let mut area = p.body;
+            area.x = r.x as f32 / scale;
+            area.y = r.y as f32 / scale;
+            area.w = (r.w as f32 - 0.5) / scale;
+            area.h = (r.h as f32 - 0.5) / scale;
+            wordcraft_render::render_area(doc, p, area, scale, opts)
+        }
+    };
+    if rendered.width != w || rendered.height != h || rendered.pixels.len() != out.len() {
+        return Err(RenderError::Engine);
+    }
+    out.copy_from_slice(&rendered.pixels);
+    Ok(RenderInfo { w, h, missing_content: missing(n) })
+}
+
+/// Whether something on page `n` cannot be drawn: a glyph with no font or a picture that does not decode.
+pub(crate) fn page_missing(doc: &wordcraft_doc::Document, layout: &DocLayout, opts: &RenderOptions, n: usize) -> bool {
+    let display = &opts.display;
+    let glyphs = layout.missing_glyphs(doc, display, Some(n..=n));
+    let (pictures, truncated, _) = wordcraft_layout::undecodable_pictures(doc, layout, Some(n..=n), display, StrictOutput::Png);
+    !glyphs.is_empty() || !pictures.is_empty() || truncated
+}
+
+/// [`Document::outline`] over any model and layout.
+pub(crate) fn outline_of(doc: &wordcraft_doc::Document, layout: &DocLayout) -> Vec<OutlineEntry> {
+    let mut out = Vec::new();
+    for (i, block) in doc.body.iter().enumerate() {
+        if out.len() >= MAX_OUTLINE_ENTRIES {
+            break;
+        }
+        let wordcraft_doc::Block::Para(p) = &**block else { continue };
+        let level = wordcraft_layout::outline::para_level(doc, p);
+        if !(1..=9).contains(&level) {
+            continue;
+        }
+        let text = outline_text(&p.plain_text());
+        if text.is_empty() {
+            continue;
+        }
+        let after = layout.pages.partition_point(|pg| pg.first_block <= i);
+        let page = after.saturating_sub(1).min(layout.pages.len().saturating_sub(1)) as u32;
+        out.push(OutlineEntry { level, text, page });
+    }
+    out
 }
 
 /// The first bytes of a zip package (a local file header): `.docx` and its relatives.
@@ -336,7 +386,7 @@ fn find(hay: &[u8], needle: &[u8]) -> Option<usize> {
 /// How a viewer draws: the upstream defaults (no formatting marks, tracked changes shown as
 /// markup, white paper), except that headers and footers are not dimmed: the defaults dim them as
 /// while editing the body, and nothing is edited here.
-fn viewer_render_options() -> RenderOptions {
+pub(crate) fn viewer_render_options() -> RenderOptions {
     RenderOptions { display: DisplayOptions { dim_header: false, ..DisplayOptions::default() }, ..RenderOptions::default() }
 }
 
