@@ -27,24 +27,35 @@ pub struct EditDoc {
     /// What the file held when it was opened (or built), for [`preserve::carry`] at save.
     original: Vec<u8>,
     revision: u64,
+    /// The engine's session for this kind (WordCraft's, for Docx); each `edit/<kind>.rs` makes and downcasts its own.
+    engine: Option<Box<dyn std::any::Any + Send>>,
 }
 
 impl EditDoc {
     /// Open `bytes` for editing. The file is pre-scanned against `limits` like the viewer's.
     pub fn open(kind: EditKind, bytes: &[u8], limits: &Limits) -> Result<EditDoc, OpenError> {
-        let _ = limits;
-        match kind {
-            EditKind::Docx => word::open(bytes)?,
-            EditKind::Xlsx => sheet::open(bytes)?,
-            EditKind::Pptx => slide::open(bytes)?,
-        }
-        Ok(EditDoc { kind, original: bytes.to_vec(), revision: 0 })
+        let engine: Option<Box<dyn std::any::Any + Send>> = match kind {
+            EditKind::Docx => Some(word::open(bytes, limits)?),
+            EditKind::Xlsx => {
+                sheet::open(bytes)?;
+                None
+            }
+            EditKind::Pptx => {
+                slide::open(bytes)?;
+                None
+            }
+        };
+        Ok(EditDoc { kind, original: bytes.to_vec(), revision: 0, engine })
     }
 
     /// A new document from a built-in template (never from disk). Only Docs have more than `Blank`.
     pub fn new_from(kind: EditKind, template: Template) -> Result<EditDoc, EditError> {
         let bytes = templates::build(kind, template)?;
-        Ok(EditDoc { kind, original: bytes, revision: 0 })
+        let engine: Option<Box<dyn std::any::Any + Send>> = match kind {
+            EditKind::Docx => Some(word::open(&bytes, &Limits::default()).map_err(|_| EditError::Engine)?),
+            _ => None,
+        };
+        Ok(EditDoc { kind, original: bytes, revision: 0, engine })
     }
 
     pub fn kind(&self) -> EditKind {
@@ -105,24 +116,37 @@ impl EditDoc {
 
     /// Pages, sheets or slides, as the viewer reports them for this kind.
     pub fn info(&self) -> Result<DocInfo, EditError> {
+        if self.kind == EditKind::Docx {
+            return word::info(self);
+        }
         Err(EditError::Unsupported)
     }
 
     pub fn render_size(&self, page: u32, scale: f32, region: Option<Rect>) -> Result<(u32, u32), RenderError> {
-        let _ = (page, scale, region);
+        if self.kind == EditKind::Docx {
+            return word::render_size(self, page, scale, region);
+        }
         Err(RenderError::Engine)
     }
 
     pub fn render_page(&self, page: u32, scale: f32, region: Option<Rect>, out: &mut [u8]) -> Result<RenderInfo, RenderError> {
-        let _ = (page, scale, region, out);
+        if self.kind == EditKind::Docx {
+            return word::render_page(self, page, scale, region, out);
+        }
         Err(RenderError::Engine)
     }
 
     pub fn outline(&self) -> Vec<OutlineEntry> {
+        if self.kind == EditKind::Docx {
+            return word::outline(self);
+        }
         Vec::new()
     }
 
     pub fn words(&self) -> u32 {
+        if self.kind == EditKind::Docx {
+            return word::words(self);
+        }
         0
     }
 
