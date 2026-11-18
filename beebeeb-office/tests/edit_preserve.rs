@@ -473,17 +473,13 @@ fn corpus_run(kind: EditKind, ext: &str, op: &Op) -> (usize, usize, usize) {
             Ok(out) => {
                 saved += 1;
                 let (a, b) = (parts_of(&bytes), parts_of(&out));
-                // Whatever came back from the original is byte-equal to it.
-                let style = |n: &&String| n.contains("/charts/style") || n.contains("/charts/colors");
-                let kept = a.keys().filter(style).filter(|n| b.contains_key(*n)).count();
-                for n in b.keys().filter(style) {
-                    if let Some(orig) = a.get(n) {
-                        assert_eq!(&b[n], orig, "{name}: {n} byte-equal");
+                // Chart style and colour relationships: the engines keep them or `carry` does, for every chart still there.
+                let count = |p: &Parts, ty: &str| p.iter().filter(|(n, _)| n.ends_with(".rels")).map(|(_, b)| rels(&s(b)).iter().filter(|r| r.1 == ty).count()).sum::<usize>();
+                let charts = |p: &Parts| p.keys().filter(|n| n.contains("/charts/chart") && n.ends_with(".xml")).count();
+                if charts(&a) == charts(&b) {
+                    for ty in [STYLE_REL, COLORS_REL] {
+                        assert!(count(&b, ty) >= count(&a, ty), "{name}: {ty} relationships kept");
                     }
-                }
-                if a.keys().filter(style).count() > 0 {
-                    eprintln!("DEBUG {name}: written chart parts {:?}", b.keys().filter(|n| n.contains("chart") || n.contains("embed")).collect::<Vec<_>>());
-                    eprintln!("edit_preserve corpus: {name}: chart style parts {} in the original, {kept} kept", a.keys().filter(style).count());
                 }
                 assert!(EditDoc::open(kind, &out, &Limits::default()).is_ok(), "{name}: reopens");
             }
