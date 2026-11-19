@@ -1,0 +1,403 @@
+diff --git a/filmcraft/filmcraft-codecs/Cargo.toml b/filmcraft/filmcraft-codecs/Cargo.toml
+index 19dde5b92..e1a785ab4 100644
+--- a/filmcraft/filmcraft-codecs/Cargo.toml
++++ b/filmcraft/filmcraft-codecs/Cargo.toml
+@@ -111,7 +111,9 @@ default = [
+     "dnx",
+     "apv",
+     "mxf",
++    "dng",
+ ]
++dng = ["filmcraft-media/dng"]
+ h264 = ["dep:filmcraft-h264"]
+ hevc = ["dep:filmcraft-hevc"]
+ aac = [
+@@ -182,6 +184,7 @@ version = "0.9.0"
+ 
+ [dependencies.filmcraft-media]
+ version = "0.9.0"
++default-features = false
+ 
+ [dependencies.filmcraft-mpa]
+ version = "0.9.0"
+diff --git a/filmcraft/filmcraft-codecs/src/avc_order.rs b/filmcraft/filmcraft-codecs/src/avc_order.rs
+new file mode 100644
+index 000000000..d2c7e12f4
+--- /dev/null
++++ b/filmcraft/filmcraft-codecs/src/avc_order.rs
+@@ -0,0 +1,108 @@
++//! Presentation order of H.264 pictures from their order counts.
++//!
++//! Modified (filmcraft/PATCHES.md): this function is `mxf.rs`'s, moved here unchanged so that the AVI reader can
++//! reorder B-frames in a build without the `mxf` feature (it uses `filmcraft-h264` and `filmcraft-bitstream`, never
++//! `filmcraft-mxf`).
++
++/// Picture order counts of AVC access units (Annex B), in stored order, as presentation
++/// positions: the rank of (IDR period, POC) (8.2.1.1, picture order count type 0; types 1 and 2
++/// never reorder for the streams written by AVC encoders we have seen, so they keep stored order).
++pub fn avc_presentation_order(heads: &[Vec<u8>]) -> Option<Vec<i64>> {
++    use filmcraft_bitstream::{annexb_nals, unescape_rbsp};
++    use filmcraft_h264::params::{Pps, Sps};
++    use filmcraft_h264::slice::{NalHeader, SliceHeader};
++    let mut spss: Vec<Option<Sps>> = vec![None; 32];
++    let mut ppss: Vec<Option<Pps>> = vec![None; 256];
++    let (mut prev_msb, mut prev_lsb) = (0i64, 0i64);
++    let mut period = 0i64;
++    let mut keys: Vec<(i64, i64)> = Vec::with_capacity(heads.len());
++    for (i, h) in heads.iter().enumerate() {
++        let mut key = None;
++        for nal in annexb_nals(h) {
++            let Ok(hdr) = NalHeader::parse(nal[0]) else {
++                continue;
++            };
++            let rbsp = unescape_rbsp(&nal[1..]);
++            match hdr.nal_unit_type {
++                7 => {
++                    let sps = Sps::parse(&rbsp).ok()?;
++                    let id = sps.id as usize;
++                    *spss.get_mut(id)? = Some(sps);
++                }
++                8 => {
++                    let pps = Pps::parse(&rbsp, &spss).ok()?;
++                    let id = pps.id as usize;
++                    *ppss.get_mut(id)? = Some(pps);
++                }
++                1 | 5 => {
++                    let mut sps_of = None;
++                    let (sh, _, _) = SliceHeader::parse(&rbsp, hdr, |id| {
++                        let pps = ppss
++                            .get(id as usize)
++                            .and_then(Option::as_ref)
++                            .ok_or(filmcraft_h264::Error::MissingParameterSet("PPS".into()))?;
++                        let sps = spss
++                            .get(pps.sps_id as usize)
++                            .and_then(Option::as_ref)
++                            .ok_or(filmcraft_h264::Error::MissingParameterSet("SPS".into()))?;
++                        sps_of = Some(sps);
++                        Ok((pps, sps))
++                    })
++                    .ok()?;
++                    let sps = sps_of?;
++                    if sh.idr {
++                        if i > 0 {
++                            period += 1;
++                        }
++                        prev_msb = 0;
++                        prev_lsb = 0;
++                    }
++                    let poc = match sps.pic_order_cnt_type {
++                        0 => {
++                            let max = 1i64 << sps.log2_max_poc_lsb;
++                            let lsb = sh.pic_order_cnt_lsb as i64;
++                            let msb = if lsb < prev_lsb && prev_lsb - lsb >= max / 2 {
++                                prev_msb + max
++                            } else if lsb > prev_lsb && lsb - prev_lsb > max / 2 {
++                                prev_msb - max
++                            } else {
++                                prev_msb
++                            };
++                            let top = msb + lsb;
++                            let poc = if sh.field_pic {
++                                top
++                            } else {
++                                top.min(top + sh.delta_pic_order_cnt_bottom as i64)
++                            };
++                            if hdr.nal_ref_idc != 0 {
++                                prev_msb = msb;
++                                prev_lsb = lsb;
++                            }
++                            poc
++                        }
++                        _ => i as i64,
++                    };
++                    if sh.has_mmco5() {
++                        // memory_management_control_operation 5: later pictures start a new period
++                        period += 1;
++                        prev_msb = 0;
++                        prev_lsb = 0;
++                        key = Some((period - 1, poc));
++                    } else {
++                        key = Some((period, poc));
++                    }
++                    break;
++                }
++                _ => {}
++            }
++        }
++        keys.push(key?);
++    }
++    let mut order: Vec<usize> = (0..keys.len()).collect();
++    order.sort_by_key(|&i| (keys[i], i));
++    let mut pts = vec![0i64; keys.len()];
++    for (rank, &i) in order.iter().enumerate() {
++        pts[i] = rank as i64;
++    }
++    Some(pts)
++}
+diff --git a/filmcraft/filmcraft-codecs/src/avi.rs b/filmcraft/filmcraft-codecs/src/avi.rs
+index 2e2930604..dcb8dfc3a 100644
+--- a/filmcraft/filmcraft-codecs/src/avi.rs
++++ b/filmcraft/filmcraft-codecs/src/avi.rs
+@@ -332,9 +332,9 @@ impl AviSource {
+             // presentation order comes from the pictures' order counts. A first look at the start
+             // of the stream decides whether it reorders at all (reading every frame's header is the
+             // cost of a reordering stream only).
+-            // Modified (filmcraft/PATCHES.md): the order counts are read by the MXF module, so only with the `mxf`
+-            // feature; without it the pictures keep their stored order.
+-            #[cfg(feature = "mxf")]
++            // Modified (filmcraft/PATCHES.md): the order counts come from `crate::avc_order` (not the MXF module),
++            // so the reorder needs only the `h264` feature.
++            #[cfg(feature = "h264")]
+             if codec == VCodec::H264
+                 && let Some(si) = vstream
+             {
+@@ -359,8 +359,8 @@ impl AviSource {
+                         .collect()
+                 };
+                 let reorders = |p: &[i64]| p.windows(2).any(|w| w[1] < w[0]);
+-                if crate::mxf::avc_presentation_order(&heads(300)).is_some_and(|p| reorders(&p))
+-                    && let Some(ranks) = crate::mxf::avc_presentation_order(&heads(vframes.len()))
++                if crate::avc_order::avc_presentation_order(&heads(300)).is_some_and(|p| reorders(&p))
++                    && let Some(ranks) = crate::avc_order::avc_presentation_order(&heads(vframes.len()))
+                 {
+                     // the pictures keep the slots they occupy (empty drop-frame chunks between them
+                     // stay), shown in their presentation order
+diff --git a/filmcraft/filmcraft-codecs/src/lib.rs b/filmcraft/filmcraft-codecs/src/lib.rs
+index 98848e71e..adae5e620 100644
+--- a/filmcraft/filmcraft-codecs/src/lib.rs
++++ b/filmcraft/filmcraft-codecs/src/lib.rs
+@@ -38,6 +38,9 @@
+ #[cfg(feature = "apv")]
+ pub mod apv;
+ pub mod audio;
++// Modified (filmcraft/PATCHES.md): the AVC picture-order helper, shared by `avi` and `mxf`.
++#[cfg(feature = "h264")]
++mod avc_order;
+ pub mod avi;
+ pub mod gop;
+ pub mod hw;
+diff --git a/filmcraft/filmcraft-codecs/src/mxf.rs b/filmcraft/filmcraft-codecs/src/mxf.rs
+index 97e1ad8a8..8319ef558 100644
+--- a/filmcraft/filmcraft-codecs/src/mxf.rs
++++ b/filmcraft/filmcraft-codecs/src/mxf.rs
+@@ -62,108 +62,8 @@ pub struct MxfSource {
+     aframes: u64,
+ }
+ 
+-/// Picture order counts of AVC access units (Annex B), in stored order, as presentation
+-/// positions: the rank of (IDR period, POC) (8.2.1.1, picture order count type 0; types 1 and 2
+-/// never reorder for the streams written by AVC encoders we have seen, so they keep stored order).
+-pub fn avc_presentation_order(heads: &[Vec<u8>]) -> Option<Vec<i64>> {
+-    use filmcraft_bitstream::{annexb_nals, unescape_rbsp};
+-    use filmcraft_h264::params::{Pps, Sps};
+-    use filmcraft_h264::slice::{NalHeader, SliceHeader};
+-    let mut spss: Vec<Option<Sps>> = vec![None; 32];
+-    let mut ppss: Vec<Option<Pps>> = vec![None; 256];
+-    let (mut prev_msb, mut prev_lsb) = (0i64, 0i64);
+-    let mut period = 0i64;
+-    let mut keys: Vec<(i64, i64)> = Vec::with_capacity(heads.len());
+-    for (i, h) in heads.iter().enumerate() {
+-        let mut key = None;
+-        for nal in annexb_nals(h) {
+-            let Ok(hdr) = NalHeader::parse(nal[0]) else {
+-                continue;
+-            };
+-            let rbsp = unescape_rbsp(&nal[1..]);
+-            match hdr.nal_unit_type {
+-                7 => {
+-                    let sps = Sps::parse(&rbsp).ok()?;
+-                    let id = sps.id as usize;
+-                    *spss.get_mut(id)? = Some(sps);
+-                }
+-                8 => {
+-                    let pps = Pps::parse(&rbsp, &spss).ok()?;
+-                    let id = pps.id as usize;
+-                    *ppss.get_mut(id)? = Some(pps);
+-                }
+-                1 | 5 => {
+-                    let mut sps_of = None;
+-                    let (sh, _, _) = SliceHeader::parse(&rbsp, hdr, |id| {
+-                        let pps = ppss
+-                            .get(id as usize)
+-                            .and_then(Option::as_ref)
+-                            .ok_or(filmcraft_h264::Error::MissingParameterSet("PPS".into()))?;
+-                        let sps = spss
+-                            .get(pps.sps_id as usize)
+-                            .and_then(Option::as_ref)
+-                            .ok_or(filmcraft_h264::Error::MissingParameterSet("SPS".into()))?;
+-                        sps_of = Some(sps);
+-                        Ok((pps, sps))
+-                    })
+-                    .ok()?;
+-                    let sps = sps_of?;
+-                    if sh.idr {
+-                        if i > 0 {
+-                            period += 1;
+-                        }
+-                        prev_msb = 0;
+-                        prev_lsb = 0;
+-                    }
+-                    let poc = match sps.pic_order_cnt_type {
+-                        0 => {
+-                            let max = 1i64 << sps.log2_max_poc_lsb;
+-                            let lsb = sh.pic_order_cnt_lsb as i64;
+-                            let msb = if lsb < prev_lsb && prev_lsb - lsb >= max / 2 {
+-                                prev_msb + max
+-                            } else if lsb > prev_lsb && lsb - prev_lsb > max / 2 {
+-                                prev_msb - max
+-                            } else {
+-                                prev_msb
+-                            };
+-                            let top = msb + lsb;
+-                            let poc = if sh.field_pic {
+-                                top
+-                            } else {
+-                                top.min(top + sh.delta_pic_order_cnt_bottom as i64)
+-                            };
+-                            if hdr.nal_ref_idc != 0 {
+-                                prev_msb = msb;
+-                                prev_lsb = lsb;
+-                            }
+-                            poc
+-                        }
+-                        _ => i as i64,
+-                    };
+-                    if sh.has_mmco5() {
+-                        // memory_management_control_operation 5: later pictures start a new period
+-                        period += 1;
+-                        prev_msb = 0;
+-                        prev_lsb = 0;
+-                        key = Some((period - 1, poc));
+-                    } else {
+-                        key = Some((period, poc));
+-                    }
+-                    break;
+-                }
+-                _ => {}
+-            }
+-        }
+-        keys.push(key?);
+-    }
+-    let mut order: Vec<usize> = (0..keys.len()).collect();
+-    order.sort_by_key(|&i| (keys[i], i));
+-    let mut pts = vec![0i64; keys.len()];
+-    for (rank, &i) in order.iter().enumerate() {
+-        pts[i] = rank as i64;
+-    }
+-    Some(pts)
+-}
++// Modified (filmcraft/PATCHES.md): `avc_presentation_order` moved to `crate::avc_order` (built without `mxf` too).
++use crate::avc_order::avc_presentation_order;
+ 
+ /// ProRes FourCC from the RDD 44 coding label profile byte.
+ fn prores_fourcc(profile: Option<u8>) -> FourCc {
+diff --git a/filmcraft/filmcraft-media/Cargo.toml b/filmcraft/filmcraft-media/Cargo.toml
+index 2c6c8b3e0..c4b580c46 100644
+--- a/filmcraft/filmcraft-media/Cargo.toml
++++ b/filmcraft/filmcraft-media/Cargo.toml
+@@ -43,12 +43,14 @@ path = "tests/hdr_oracle.rs"
+ [[test]]
+ name = "tiff_ycbcr"
+ path = "tests/tiff_ycbcr.rs"
++required-features = ["dng"]
+ 
+ [dependencies.filmcraft-color]
+ version = "0.9.0"
+ 
+ [dependencies.filmcraft-dng]
+ version = "0.9.0"
++optional = true
+ 
+ [dependencies.filmcraft-frame]
+ version = "0.9.0"
+@@ -88,6 +90,11 @@ features = ["writer"]
+ [dev-dependencies.png]
+ version = "0.18"
+ 
++# Modified (filmcraft/PATCHES.md): DNG (and the TIFF parser that lives in `filmcraft-dng`) is a feature.
++[features]
++default = ["dng"]
++dng = ["dep:filmcraft-dng"]
++
+ [lints.clippy]
+ dbg_macro = "warn"
+ needless_range_loop = "allow"
+diff --git a/filmcraft/filmcraft-media/src/sequence.rs b/filmcraft/filmcraft-media/src/sequence.rs
+index db4297783..d37c611bd 100644
+--- a/filmcraft/filmcraft-media/src/sequence.rs
++++ b/filmcraft/filmcraft-media/src/sequence.rs
+@@ -138,8 +138,12 @@ impl ImageSequenceSource {
+         })?;
+         let (frame, has_alpha, pixel_format, timing) = decode_frame(&first, &bytes)?;
+         let (w, h) = (frame.width, frame.height);
++        // Modified (filmcraft/PATCHES.md): the CinemaDNG timing exists only with the `dng` feature.
+         let (rate, start_timecode) = match timing {
++            #[cfg(feature = "dng")]
+             Some(info) => crate::still::dng::sequence_timing(&info, rate),
++            #[cfg(not(feature = "dng"))]
++            Some(never) => match never {},
+             None => (rate, None),
+         };
+         let ext = first.rsplit('.').next().unwrap_or("image").to_ascii_uppercase();
+@@ -221,10 +225,16 @@ impl MediaSource for ImageSequenceSource {
+     }
+ }
+ 
++// Modified (filmcraft/PATCHES.md): without the `dng` feature there is no DNG info, and the type has no value.
++#[cfg(feature = "dng")]
++type DngInfo = filmcraft_dng::Info;
++#[cfg(not(feature = "dng"))]
++type DngInfo = std::convert::Infallible;
++
+ /// Decode one frame file: OpenEXR, Radiance HDR and DNG camera raw as linear floats (DNG with its metadata, for
+ /// the sequence's timing), every other format through the still decoders as RGBA8. Returns the
+ /// frame, whether it has alpha, and its pixel format for the media info.
+-fn decode_frame(name: &str, bytes: &[u8]) -> Result<(VideoFrame, bool, String, Option<filmcraft_dng::Info>)> {
++fn decode_frame(name: &str, bytes: &[u8]) -> Result<(VideoFrame, bool, String, Option<DngInfo>)> {
+     if crate::still::exr::sniff(bytes) {
+         let d = crate::still::exr::decode(name, bytes)?;
+         return Ok((d.frame, d.has_alpha, d.pixel_format, None));
+@@ -233,6 +243,7 @@ fn decode_frame(name: &str, bytes: &[u8]) -> Result<(VideoFrame, bool, String, O
+         let frame = crate::still::hdr::decode(name, bytes)?;
+         return Ok((frame, false, "RGB 32-bit float (RGBE)".to_string(), None));
+     }
++    #[cfg(feature = "dng")]
+     if crate::still::dng::sniff(bytes) {
+         let d = crate::still::dng::decode(name, bytes)?;
+         return Ok((d.frame, false, d.pixel_format, Some(d.info)));
+diff --git a/filmcraft/filmcraft-media/src/still.rs b/filmcraft/filmcraft-media/src/still.rs
+index 13ad0d5ec..abc13ccb5 100644
+--- a/filmcraft/filmcraft-media/src/still.rs
++++ b/filmcraft/filmcraft-media/src/still.rs
+@@ -9,9 +9,13 @@ use filmcraft_time::{FrameRate, TICKS_PER_SECOND, Tick};
+ 
+ use crate::{FrameRequest, MediaError, MediaInfo, MediaKind, MediaSource, Result, VideoStreamInfo};
+ 
++// Modified (filmcraft/PATCHES.md): the DNG reader and the YCbCr TIFF reader (both parse TIFF with `filmcraft-dng`)
++// are built only with the `dng` feature.
++#[cfg(feature = "dng")]
+ pub mod dng;
+ pub mod exr;
+ pub mod hdr;
++#[cfg(feature = "dng")]
+ mod ycbcr_tiff;
+ 
+ /// Default still duration (Premiere's preference default is 5 seconds).
+@@ -49,6 +53,8 @@ pub fn decode_raster(name: &str, bytes: &[u8]) -> Result<Raster> {
+     if crate::tga::sniff(name, bytes) {
+         return crate::tga::decode(name, bytes);
+     }
++    // Modified (filmcraft/PATCHES.md): only with the `dng` feature.
++    #[cfg(feature = "dng")]
+     if ycbcr_tiff::sniff(bytes) {
+         return ycbcr_tiff::decode(name, bytes);
+     }
+@@ -67,6 +73,8 @@ pub struct StillSource {
+ impl StillSource {
+     pub fn decode(name: &str, bytes: &[u8]) -> Result<Self> {
+         // a DNG is a TIFF too: develop its raw image instead of reading its preview
++        // Modified (filmcraft/PATCHES.md): only with the `dng` feature; without it a DNG is an ordinary TIFF.
++        #[cfg(feature = "dng")]
+         if dng::sniff(bytes) {
+             return dng::still(name, bytes);
+         }

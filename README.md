@@ -90,6 +90,11 @@ engine dropped, from the file the document was opened from; it never reads or wr
 On the 72 Microsoft-Office rows of `corpus/`, the old guard refused 3 of 24 `.docx`, 14 of 24 `.xlsx` and 24 of 24 `.pptx`
 on save (any part gone from the saved package); now none is refused.
 
+## FilmCraft (for the media helper)
+
+`filmcraft/` holds FilmCraft 0.9.0's 26 crates, vendored from their crates.io tarballs for the desktop app's media
+helper (not for the Office viewer): what, why, the hashes and the changes are in `filmcraft/README.md`.
+
 ## Licences
 
 - All three projects are licensed **MIT OR Apache-2.0**. Each folder keeps its own `LICENSE-MIT`, `LICENSE-APACHE`,
