@@ -51,6 +51,20 @@ jobs:
       - name: Closure check (0 network crates)
         run: ./scripts/check-closure.sh
 
+      - name: Editor closure (0 network crates, both editor feature sets)
+        run: ./scripts/check-editor-closure.sh
+
+      - name: Editor closure can fail (WordCraft with default features must report ureq and rustls)
+        run: |
+          set -uo pipefail
+          if EDITOR_FLAGS= ./scripts/check-editor-closure.sh > editor-closure-negative.txt 2>&1; then
+            echo "FAIL: the check passed with the font store on; it cannot fail" >&2
+            exit 1
+          fi
+          grep -q 'ureq is in the editor' editor-closure-negative.txt
+          grep -q 'rustls is in the editor' editor-closure-negative.txt
+          rm editor-closure-negative.txt
+
       - name: Install cargo-deny 0.20.2
         run: cargo install cargo-deny --version 0.20.2 --locked
 

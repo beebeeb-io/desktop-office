@@ -235,7 +235,7 @@ impl Workbook {
         crate::prescan(bytes, limits)?;
         check_content(kind, bytes)?;
         probe::handed(bytes);
-        let (mut book, report) = match kind {
+        let (book, report) = match kind {
             SheetKind::Xlsx => gridcraft_xlsx::read_xlsx(bytes).map_err(from_xlsx)?,
             SheetKind::Xls => gridcraft_xlsx::read_xls(bytes).map_err(from_xls)?,
         };
@@ -243,6 +243,22 @@ impl Workbook {
             return Err(OpenError::TooLarge(crate::limits::SHEETS));
         }
 
+        let drawings_left_out = matches!(kind, SheetKind::Xlsx) && report.warnings.iter().any(|w| DRAWINGS_LEFT_OUT.iter().any(|m| w.contains(m)));
+        Self::assemble(book, drawings_left_out, limits)
+    }
+
+    /// The viewer's view of a model workbook the editor holds: the same extents, extras and
+    /// cell texts as after [`Workbook::open`], without the file checks (the editor opened it).
+    pub(crate) fn over(book: gridcraft_model::Workbook, drawings_left_out: bool, limits: &Limits) -> Result<Workbook, OpenError> {
+        Self::assemble(book, drawings_left_out, limits)
+    }
+
+    /// The workbook's model, taken out of its view (the editor's engine session starts from it).
+    pub(crate) fn into_book(self) -> (gridcraft_model::Workbook, bool) {
+        (self.book, self.drawings_left_out)
+    }
+
+    fn assemble(mut book: gridcraft_model::Workbook, drawings_left_out: bool, limits: &Limits) -> Result<Workbook, OpenError> {
         // One pass over every cell: the count against the limit, each sheet's extent, the formulas
         // without a cached value, the cells whose value would come from outside the file.
         let mut content: u64 = 0;
@@ -281,7 +297,6 @@ impl Workbook {
 
         recalculate(&mut book, &uncached);
 
-        let drawings_left_out = matches!(kind, SheetKind::Xlsx) && report.warnings.iter().any(|w| DRAWINGS_LEFT_OUT.iter().any(|m| w.contains(m)));
         let mut sheets = Vec::with_capacity(book.sheets.len());
         for ((sheet, ext), (mut rows, mut cols)) in book.sheets.iter().zip(extra.iter_mut()).zip(extents) {
             // Values an uncached dynamic-array formula spilled reach past its own cell.
@@ -451,7 +466,7 @@ fn page_pixels(w_pt: f32, h_pt: f32, scale: f32, max_side: u32) -> Result<(u32, 
 
 /// The cells of `range` as a model range, cut to the grid; `None` when it is empty or starts
 /// outside the grid.
-fn grid_range(range: CellRange) -> Option<RangeRef> {
+pub(crate) fn grid_range(range: CellRange) -> Option<RangeRef> {
     if range.rows == 0 || range.cols == 0 || range.row >= gridcraft_core::MAX_ROWS || range.col >= gridcraft_core::MAX_COLS {
         return None;
     }

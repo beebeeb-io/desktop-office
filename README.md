@@ -34,6 +34,7 @@ forward, or drops it once the new tag has the same fix.
 | Folder | File | Change | Test |
 |---|---|---|---|
 | `wordcraft/` | `crates/docx/src/read/story/drawing.rs` | A picture's `a:blip` and crop are read from the `mc:AlternateContent` branch the reader takes (a Choice whose requirements it knows, else the Fallback; ECMA-376 Part 3 §10.2), not from the first Choice. A Choice needing the Mac drawing namespace held a PDF the renderer cannot draw (`corpus/docx/Bug51170.docx`). | `beebeeb-office/tests/docx_alternate_content.rs` |
+| `wordcraft/` | `crates/engine/Cargo.toml`, `crates/engine/src/packs.rs` | The font and language-pack downloader (`craft-font-store`, `craft-font-catalog`, so `ureq` and `rustls`) is behind a `font-store` feature, on by default (upstream behaviour). The editor builds without it. See "Editor" below. | `scripts/check-editor-closure.sh` (with `EDITOR_FLAGS=` it must fail) |
 
 ```mermaid
 flowchart LR
@@ -45,6 +46,54 @@ flowchart LR
   D --> V
   V --> H[the desktop app's sandboxed render helper]
 ```
+
+## Editor
+
+`beebeeb-office` has the feature `edit` (default): `beebeeb_office::edit`, the editing API, on `wordcraft-engine` and
+`gridcraft-engine`. `edit-slides` (not default) adds `deckcraft-engine`, which brings the MPL-2.0 `symphonia` crates;
+it stays off, and `deny.toml` allows no MPL, until the owner accepts MPL-2.0 (contract Q4). Without it slides
+answer `Unsupported`. Only whole files in bytes go in and out; no engine command that touches files, processes,
+print, speech, fonts, templates from disk or recovery is reachable (`Op` is a closed list).
+
+WordCraft's engine links a downloader (`ureq`, `rustls`) for language packs. `patches/wordcraft-engine-font-store-optional.patch`
+puts it behind a `font-store` feature (default on, so upstream is unchanged); `beebeeb-office` depends on the engine
+with `default-features = false`. `scripts/check-editor-closure.sh` fails if a network crate (the list in `deny.toml`) is
+in the closure of the WordCraft engine without the feature, or of `beebeeb-office` with `edit` or `edit-slides`.
+`EDITOR_FLAGS= scripts/check-editor-closure.sh` checks WordCraft's default features instead and must fail
+(`ureq`, `rustls`): CI runs both.
+
+**At an upstream bump** of `wordcraft/`: after the subtree pull, run `git apply --directory=wordcraft
+patches/wordcraft-engine-font-store-optional.patch`, then the closure check. If the patch no longer applies,
+`patches/make-wordcraft-engine-patch.py <wordcraft dir>` redoes the same edit (the `cfg` lines in
+`crates/engine/src/packs.rs` and the optional dependencies in its `Cargo.toml`); regenerate the patch with
+`git diff --relative=wordcraft -- wordcraft/crates/engine > patches/wordcraft-engine-font-store-optional.patch`. Drop the patch once upstream has the feature.
+
+### Editor: what a save keeps
+
+A save is the engine's package plus `edit/preserve.rs`'s `carry(original, written)`. `carry` adds back whole parts the
+engine dropped, from the file the document was opened from; it never reads or writes XML inside a part (only
+`[Content_Types].xml` and the `.rels` files) and never refuses because a part is missing. Tests: `tests/edit_preserve.rs`
+(`cargo test --locked edit_preserve`; the pptx corpus and the `.pptm` test need `--features edit-slides`).
+
+| What | Result |
+|---|---|
+| Macro project (`vbaProject.bin`, its signature parts, Word's `vbaData.xml`) in `.docm` and `.pptm` | Carried byte-equal, with its relationship, its content type and the macro-enabled content type of the main part. Tested through the engines on a `.docm` and (with `edit-slides`) a `.pptm`. |
+| Macro project in `.xlsm` | Kept by GridCraft; byte-equal, referenced, macro-enabled main type (tested). `carry` covers it too. |
+| A macro project that cannot be carried | The save answers `Unsupported`. A macro is never dropped silently. |
+| Chart style and colour parts (`chartStyle`, `chartColorStyle`) | DeckCraft keeps them itself (renamed `kept2.xml` and so on, with their relationships). `carry` brings them back only for a chart the saved package still has under the same name, and only when the engine wrote no such relationship. |
+| `calcChain`, `docProps/thumbnail.jpeg` | Skipped on purpose: stale after any edit (Excel and PowerPoint rebuild them). |
+| Speaker notes (`notesSlides`, with `notesMaster`) | Skipped: DeckCraft does not write them, and bringing them back needs `r:id` references inside slide and presentation XML. A saved deck loses its speaker notes. |
+| Transitions inside `mc:AlternateContent`, other XML the engine rewrites | Noted, skipped (inside a part). |
+| Pictures, drawings, `printerSettings`, VML drawings, SmartArt data rels, `tableSingleCells`, chartsheets and charts GridCraft does not model, OLE objects, an embedded workbook the engine drops | Skipped: the part is named by `r:id` from XML the engine rewrote, so bringing it back would leave an orphan or a dangling reference. |
+| Linked (external) pictures | Not touched: a relationship with no part; the engines write the ones they model. |
+
+On the 72 Microsoft-Office rows of `corpus/`, the old guard refused 3 of 24 `.docx`, 14 of 24 `.xlsx` and 24 of 24 `.pptx`
+on save (any part gone from the saved package); now none is refused.
+
+## FilmCraft (for the media helper)
+
+`filmcraft/` holds FilmCraft 0.9.0's 26 crates, vendored from their crates.io tarballs for the desktop app's media
+helper (not for the Office viewer): what, why, the hashes and the changes are in `filmcraft/README.md`.
 
 ## Licences
 
