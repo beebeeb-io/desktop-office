@@ -91,7 +91,40 @@ impl EditDoc {
     /// Serialise the document. The engine's output goes through [`preserve::carry`] with the original.
     pub fn save(&self) -> Result<Vec<u8>, SaveError> {
         let written = self.engine_save()?;
-        preserve::carry_with(&self.original, self.baseline(), written)
+        let out = preserve::carry_with(&self.original, self.baseline(), written)?;
+        if !preserve::has_thumbnail(&self.original) {
+            return Ok(out);
+        }
+        preserve::thumbnail(&self.original, out, self.thumbnail_plan())
+    }
+
+    /// The original's thumbnail when the first page, slide or sheet is unchanged (measured by drawing it before and
+    /// after, or reading the first sheet's cells), a fresh PNG of the first page when it changed, none when
+    /// nothing here can draw one (a workbook).
+    fn thumbnail_plan(&self) -> preserve::Thumb {
+        use preserve::Thumb;
+        let Ok(orig) = EditDoc::open(self.kind, &self.original, &Limits::default()) else { return Thumb::Drop };
+        if self.kind == EditKind::Xlsx {
+            let (Ok(a), Ok(_)) = (orig.sheets(), self.sheets()) else { return Thumb::Drop };
+            let Some(s) = a.sheets.first() else { return Thumb::Drop };
+            let range = CellRange { row: 0, col: 0, rows: s.rows.max(1), cols: s.cols.max(1) };
+            return match (orig.cells(0, range), self.cells(0, range)) {
+                (Ok(x), Ok(y)) if x == y => Thumb::Keep,
+                _ => Thumb::Drop,
+            };
+        }
+        const SCALE: f32 = 0.25;
+        let raster = |d: &EditDoc| -> Option<(u32, u32, Vec<u8>)> {
+            let (w, h) = d.render_size(0, SCALE, None).ok()?;
+            let mut buf = vec![0u8; (w as usize).checked_mul(h as usize)?.checked_mul(4)?];
+            let info = d.render_page(0, SCALE, None, &mut buf).ok()?;
+            Some((info.w, info.h, buf))
+        };
+        match (raster(&orig), raster(self)) {
+            (Some(a), Some(b)) if a == b => Thumb::Keep,
+            (_, Some((w, h, buf))) => Thumb::Fresh(preserve::png_of_rgba(w, h, &buf)),
+            _ => Thumb::Drop,
+        }
     }
 
     fn engine_save(&self) -> Result<Vec<u8>, SaveError> {

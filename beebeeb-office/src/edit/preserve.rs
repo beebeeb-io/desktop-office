@@ -24,8 +24,14 @@
 //!   slide's relationships, which the engine numbers its own way). OLE objects and embedded workbooks the engines
 //!   keep byte-equal themselves (DeckCraft under its own names).
 //!
-//! Parts it deliberately does not carry: `calcChain` and thumbnails (stale after any edit, and a thumbnail of
-//! a deleted slide would keep showing it), media and drawings the document XML names by `r:id` (the engine
+//! - the document thumbnail (`docProps/thumbnail.*`, [`thumbnail`]): the original's bytes when the first page, slide
+//!   or sheet is unchanged, else a fresh PNG of the first page (documents, decks) or none (workbooks have no
+//!   sheet renderer), never the stale picture;
+//! - a workbook's `calcChain` is not carried: GridCraft rewrites the sheets, so the original's list may name cells
+//!   that moved or lost their formula, and Excel repairs a file with a wrong chain. It is dropped with its
+//!   relationship and content type (Excel rebuilds it on open).
+//!
+//! Parts it deliberately does not carry: media and drawings the document XML names by `r:id` (the engine
 //! rewrote that XML) other than the charts and SmartArt above. Notes slides are not carried either: the engine
 //! writes a slide's notes itself (the text survives an edit); only a notes slide with no text is not written,
 //! and the slides renumber under an edit, so a part kept by name could land on the wrong slide. A macro project that cannot be carried makes the save `Unsupported`: a macro is
@@ -937,4 +943,139 @@ mod tests {
     fn edit_preserve_unreadable_packages_are_unsupported() {
         assert_eq!(carry(b"a", b"b".to_vec()).unwrap_err(), SaveError::Unsupported);
     }
+}
+
+// ---- the document thumbnail ---------------------------------------------------------------------------------
+
+const REL_THUMBNAIL: &str = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail";
+
+/// What [`thumbnail`] puts in the saved package.
+pub(super) enum Thumb {
+    /// The original's thumbnail, byte for byte (its first page is unchanged).
+    Keep,
+    /// A PNG of the first page as saved.
+    Fresh(Vec<u8>),
+    /// None: the original's picture is stale and nothing can draw a new one.
+    Drop,
+}
+
+/// Whether the original package has a thumbnail.
+pub(super) fn has_thumbnail(original: &[u8]) -> bool {
+    read(original).is_some_and(|p| thumb_of(&p).is_some())
+}
+
+/// The thumbnail relationship of the package: (relationship id, part name).
+fn thumb_of(p: &Package) -> Option<(String, String)> {
+    let rels = p.parts.get("_rels/.rels")?;
+    let r = parse_rels(rels).into_iter().find(|r| !r.external && r.ty == REL_THUMBNAIL)?;
+    let name = resolve(p, "", &r.target)?;
+    Some((r.id, name))
+}
+
+/// Replaces whatever thumbnail the saved package has (the engine keeps a stale one or drops it) by `want`.
+/// Only `docProps/thumbnail.*`, `_rels/.rels` and `[Content_Types].xml` change.
+pub(super) fn thumbnail(original: &[u8], saved: Vec<u8>, want: Thumb) -> Result<Vec<u8>, SaveError> {
+    let (Some(orig), Some(mut out)) = (read(original), read(&saved)) else { return Err(SaveError::Unsupported) };
+    let old = thumb_of(&out);
+    if matches!(want, Thumb::Keep) && old.is_some() && old == thumb_of(&orig) && old.as_ref().is_some_and(|(_, n)| out.parts.get(n) == orig.parts.get(n)) {
+        return Ok(saved);
+    }
+    if matches!(want, Thumb::Drop) && old.is_none() {
+        return Ok(saved);
+    }
+    let mut ct = text(out.parts.get("[Content_Types].xml").ok_or(SaveError::Unsupported)?);
+    let orig_ct = text(orig.parts.get("[Content_Types].xml").ok_or(SaveError::Unsupported)?);
+    let mut rels = text(out.parts.get("_rels/.rels").ok_or(SaveError::Unsupported)?);
+    // Every thumbnail relationship and its part go.
+    let mut from = 0;
+    while let Some((s, e, attrs)) = find_element(&rels, "Relationship", from) {
+        if attrs.iter().any(|(k, v)| k == "Type" && v == REL_THUMBNAIL) {
+            rels.replace_range(s..e, "");
+            from = s;
+        } else {
+            from = e;
+        }
+    }
+    if let Some((_, name)) = &old {
+        out.remove(name);
+        if let Some(x) = remove_override(&ct, name) {
+            ct = x;
+        }
+    }
+    let (name, bytes, ty) = match want {
+        Thumb::Drop => (None, Vec::new(), None),
+        Thumb::Keep => match thumb_of(&orig) {
+            Some((_, n)) => (Some(n.clone()), orig.parts[&n].clone(), content_type_of(&orig_ct, &n)),
+            None => (None, Vec::new(), None),
+        },
+        Thumb::Fresh(b) => (Some("docProps/thumbnail.png".to_string()), b, Some("image/png".to_string())),
+    };
+    if let (Some(name), Some(ty)) = (name, ty) {
+        if out.parts.contains_key(&name) {
+            return Err(SaveError::Unsupported);
+        }
+        let used: BTreeSet<String> = parse_rels(rels.as_bytes()).into_iter().map(|r| r.id).collect();
+        let id = fresh_id("rId1", &used);
+        rels = add_rel(&rels, &id, REL_THUMBNAIL, &name).ok_or(SaveError::Unsupported)?;
+        if content_type_of(&ct, &name).as_deref() != Some(ty.as_str()) {
+            ct = set_override(&ct, &name, &ty).ok_or(SaveError::Unsupported)?;
+        }
+        out.insert(name, bytes);
+    }
+    out.parts.insert("_rels/.rels".into(), rels.into_bytes());
+    out.parts.insert("[Content_Types].xml".into(), ct.into_bytes());
+    write(&out).ok_or(SaveError::Engine)
+}
+
+/// A PNG (8-bit RGB, stored deflate blocks: no compressor needed for a small thumbnail) of an RGBA raster,
+/// composited over white.
+pub(super) fn png_of_rgba(w: u32, h: u32, rgba: &[u8]) -> Vec<u8> {
+    let mut raw = Vec::with_capacity((w as usize * 3 + 1) * h as usize);
+    for row in rgba.chunks_exact(w as usize * 4).take(h as usize) {
+        raw.push(0);
+        for px in row.chunks_exact(4) {
+            let a = px[3] as u32;
+            for c in &px[..3] {
+                raw.push(((*c as u32 * a + 255 * (255 - a)) / 255) as u8);
+            }
+        }
+    }
+    let mut z = vec![0x78, 0x01];
+    let mut chunks = raw.chunks(65535).peekable();
+    while let Some(c) = chunks.next() {
+        z.push(u8::from(chunks.peek().is_none()));
+        z.extend_from_slice(&(c.len() as u16).to_le_bytes());
+        z.extend_from_slice(&(!(c.len() as u16)).to_le_bytes());
+        z.extend_from_slice(c);
+    }
+    let (mut a, mut b) = (1u32, 0u32);
+    for x in &raw {
+        a = (a + *x as u32) % 65521;
+        b = (b + a) % 65521;
+    }
+    z.extend_from_slice(&((b << 16) | a).to_be_bytes());
+    let mut png = b"\x89PNG\r\n\x1a\n".to_vec();
+    let mut ihdr = Vec::new();
+    ihdr.extend_from_slice(&w.to_be_bytes());
+    ihdr.extend_from_slice(&h.to_be_bytes());
+    ihdr.extend_from_slice(&[8, 2, 0, 0, 0]);
+    for (ty, data) in [(b"IHDR", ihdr.as_slice()), (b"IDAT", z.as_slice()), (b"IEND", &[][..])] {
+        png.extend_from_slice(&(data.len() as u32).to_be_bytes());
+        let mut body = ty.to_vec();
+        body.extend_from_slice(data);
+        png.extend_from_slice(&body);
+        png.extend_from_slice(&crc32(&body).to_be_bytes());
+    }
+    png
+}
+
+fn crc32(data: &[u8]) -> u32 {
+    let mut crc = !0u32;
+    for b in data {
+        crc ^= *b as u32;
+        for _ in 0..8 {
+            crc = if crc & 1 != 0 { (crc >> 1) ^ 0xEDB8_8320 } else { crc >> 1 };
+        }
+    }
+    !crc
 }
