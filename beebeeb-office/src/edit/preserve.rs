@@ -15,11 +15,18 @@
 //!   relationship of the same type the engine wrote itself.
 //! - Everything the engine wrote stays byte for byte; with nothing to carry the saved bytes come back as they are.
 //!
-//! - a deck's printer settings and revision info (`ppt/presentation.xml` names neither by `r:id`).
+//! - a deck's printer settings and revision info (`ppt/presentation.xml` names neither by `r:id`);
+//! - a deck's legacy VML drawing of an OLE object ([`carry_vml`]), on each written slide holding that object;
+//! - with a baseline (the engine's no-edit save), charts and SmartArt parts the engine rewrote go back to the
+//!   original's bytes when the edit did not touch them ([`restore`]): under the engine's name, so the `r:id` in the
+//!   XML the engine wrote stays right, with the original's own relationships and parts (embedded workbook, style,
+//!   colours, pictures). One value inside a part changes: SmartArt data's `dataModelExt relId` (an id of the
+//!   slide's relationships, which the engine numbers its own way). OLE objects and embedded workbooks the engines
+//!   keep byte-equal themselves (DeckCraft under its own names).
 //!
 //! Parts it deliberately does not carry: `calcChain` and thumbnails (stale after any edit, and a thumbnail of
 //! a deleted slide would keep showing it), media and drawings the document XML names by `r:id` (the engine
-//! rewrote that XML), embedded workbooks and OLE objects. Notes slides are not carried either: the engine
+//! rewrote that XML) other than the charts and SmartArt above. Notes slides are not carried either: the engine
 //! writes a slide's notes itself (the text survives an edit); only a notes slide with no text is not written,
 //! and the slides renumber under an edit, so a part kept by name could land on the wrong slide. A macro project that cannot be carried makes the save `Unsupported`: a macro is
 //! never dropped silently.
@@ -58,6 +65,21 @@ struct Package {
     parts: Parts,
 }
 
+impl Package {
+    fn insert(&mut self, name: String, bytes: Vec<u8>) {
+        if !self.parts.contains_key(&name) {
+            self.order.push(name.clone());
+        }
+        self.parts.insert(name, bytes);
+    }
+
+    fn remove(&mut self, name: &str) {
+        if self.parts.remove(name).is_some() {
+            self.order.retain(|n| n != name);
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 struct Rel {
     id: String,
@@ -66,16 +88,29 @@ struct Rel {
     external: bool,
 }
 
+/// Without a baseline (the unit tests and a document no engine reopens).
+#[cfg_attr(not(test), allow(dead_code))]
 pub(super) fn carry(original: &[u8], written: Vec<u8>) -> Result<Vec<u8>, SaveError> {
+    carry_with(original, None, written)
+}
+
+/// [`carry`], and with `baseline` (the engine's save of the original with no edit) also [`restore`]: a chart or
+/// SmartArt part the engine rewrote goes back to the original's bytes when the edit did not touch it.
+pub(super) fn carry_with(original: &[u8], baseline: Option<&[u8]>, written: Vec<u8>) -> Result<Vec<u8>, SaveError> {
     let (Some(orig), Some(mut out)) = (read(original), read(&written)) else { return Err(SaveError::Unsupported) };
     let had_macro = orig.parts.iter().any(|(n, b)| is_rels(n) && parse_rels(b).iter().any(|r| !r.external && r.ty == REL_VBA));
+    let mut ct = text(out.parts.get("[Content_Types].xml").ok_or(SaveError::Unsupported)?);
+    let orig_ct = text(orig.parts.get("[Content_Types].xml").ok_or(SaveError::Unsupported)?);
+    let mut changed = false;
+    if let Some(base) = baseline.and_then(read) {
+        changed |= restore(&orig, &orig_ct, &base, &mut out, &mut ct);
+    }
+    changed |= carry_vml(&orig, &orig_ct, &mut out, &mut ct);
     let plan = plan(&orig, &out);
-    if plan.is_empty() {
+    if plan.is_empty() && !changed {
         return if had_macro && !has_macro(&out) { Err(SaveError::Unsupported) } else { Ok(written) };
     }
     let mut rels: BTreeMap<String, String> = BTreeMap::new();
-    let mut ct = text(out.parts.get("[Content_Types].xml").ok_or(SaveError::Unsupported)?);
-    let orig_ct = text(orig.parts.get("[Content_Types].xml").ok_or(SaveError::Unsupported)?);
     let mut carried_macro = false;
     for c in &plan {
         for name in &c.parts {
@@ -115,6 +150,332 @@ pub(super) fn carry(original: &[u8], written: Vec<u8>) -> Result<Vec<u8>, SaveEr
         return Err(SaveError::Unsupported);
     }
     write(&out).ok_or(SaveError::Engine)
+}
+
+// ---- charts and SmartArt the engine rewrote ---------------------------------------------------------------
+
+const REL_CHART: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart";
+const REL_CHART_EX: &str = "http://schemas.microsoft.com/office/2014/relationships/chartEx";
+const REL_DGM_DATA: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramData";
+const REL_DGM_LAYOUT: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramLayout";
+const REL_DGM_STYLE: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramQuickStyle";
+const REL_DGM_COLORS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/diagramColors";
+const REL_DGM_DRAWING: &str = "http://schemas.microsoft.com/office/2007/relationships/diagramDrawing";
+const REL_VML: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/vmlDrawing";
+const REL_OLE: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject";
+const REL_IMAGE: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
+
+/// Parts named by `r:id` from XML the engine writes (a slide, a drawing), which the engine writes again itself:
+/// [`restore`] puts the original's bytes back under the engine's name, so the `r:id` stays right.
+const RESTORED: &[&str] = &[REL_CHART, REL_CHART_EX, REL_DGM_DATA, REL_DGM_LAYOUT, REL_DGM_STYLE, REL_DGM_COLORS];
+
+/// Whether [`carry_with`] can use a baseline for this original (it has a part [`restore`] handles).
+pub(super) fn wants_baseline(original: &[u8]) -> bool {
+    let Some(p) = read(original) else { return false };
+    p.parts.iter().any(|(n, b)| is_rels(n) && parse_rels(b).iter().any(|r| !r.external && RESTORED.contains(&r.ty.as_str())))
+}
+
+/// Charts and SmartArt parts the engine rewrote (DeckCraft drops a SmartArt picture fill, GridCraft redraws a chart
+/// from its model) go back to the original's bytes, with the original's own relationships and parts (embedded
+/// workbook, chart style and colours, pictures), when the edit did not touch them.
+///
+/// "Did not touch" is measured, not assumed: `base` is the engine's save of the original with no edit. A written
+/// part is the original's when its bytes equal the baseline's part at the same place in package order (the
+/// same type, the same index in a walk of the relationships in document order, under the same kind of source).
+/// A part the edit changed (a renamed sheet in a chart's formulas, new values in its cache) differs from the
+/// baseline and stays the engine's. The written part's name is kept, so the `r:id` in the slide or drawing the
+/// engine wrote stays right; the engine's own relationship targets of that part go when nothing else uses them.
+fn restore(orig: &Package, orig_ct: &str, base: &Package, out: &mut Package, ct: &mut String) -> bool {
+    let mut changed = false;
+    for ty in RESTORED {
+        let in_orig = walk(orig, ty);
+        let in_base = walk(base, ty);
+        if in_orig.len() != in_base.len() || in_orig.iter().zip(&in_base).any(|(a, b)| class(&a.0) != class(&b.0)) {
+            continue;
+        }
+        for (source, _, part) in rels_of_type(out, ty) {
+            let Some(bytes) = out.parts.get(&part) else { continue };
+            let from: BTreeSet<&String> = in_base.iter().zip(&in_orig).filter(|(b, _)| base.parts.get(&b.1) == Some(bytes)).map(|(_, o)| &o.1).collect();
+            // Two original parts the engine writes alike: which one this is cannot be told.
+            let Some(o) = from.iter().next().copied() else { continue };
+            if from.iter().any(|x| orig.parts.get(*x) != orig.parts.get(o)) {
+                continue;
+            }
+            if same_with_rels(orig, o, out, &part) {
+                continue;
+            }
+            if *ty == REL_DGM_DATA {
+                changed |= restore_diagram_data(orig, orig_ct, o, out, ct, &source, &part);
+                continue;
+            }
+            put_back(orig, orig_ct, o, out, ct, &part, orig.parts[o].clone());
+            changed = true;
+        }
+    }
+    changed
+}
+
+/// SmartArt data names its drawing by the id of a relationship of the slide (`dsp:dataModelExt relId`), and the
+/// engine numbers the slide's relationships its own way: the data comes back with that one id set to the
+/// engine's, and the drawing it names comes back with it. Without a drawing on both sides nothing changes.
+#[allow(clippy::too_many_arguments)]
+fn restore_diagram_data(orig: &Package, orig_ct: &str, o: &str, out: &mut Package, ct: &mut String, source: &str, part: &str) -> bool {
+    let (Some(o_bytes), Some(w_bytes)) = (orig.parts.get(o), out.parts.get(part)) else { return false };
+    let (o_xml, w_xml) = (String::from_utf8_lossy(o_bytes).into_owned(), String::from_utf8_lossy(w_bytes).into_owned());
+    let (Some((os, oe)), Some((ws, we))) = (drawing_rel_id(&o_xml), drawing_rel_id(&w_xml)) else { return false };
+    let (o_id, w_id) = (&o_xml[os..oe], &w_xml[ws..we]);
+    // The original's drawing: the relationship `o_id` of the part that names this data.
+    let Some(o_source) = orig.parts.iter().filter(|(n, _)| is_rels(n)).find_map(|(n, b)| {
+        let s = source_of(n)?;
+        parse_rels(b).iter().any(|r| !r.external && r.ty == REL_DGM_DATA && resolve(orig, &s, &r.target).as_deref() == Some(o)).then_some(s)
+    }) else {
+        return false;
+    };
+    let find = |p: &Package, s: &str, id: &str| -> Option<String> {
+        let r = parse_rels(p.parts.get(&rels_name_of(s))?).into_iter().find(|r| r.id == id && !r.external && r.ty == REL_DGM_DRAWING)?;
+        resolve(p, s, &r.target)
+    };
+    let (Some(o_drawing), Some(w_drawing)) = (find(orig, &o_source, o_id), find(out, source, w_id)) else { return false };
+    let mut bytes = o_xml.clone();
+    if o_id != w_id {
+        bytes.replace_range(os..oe, w_id);
+    }
+    let bytes = if o_id == w_id { o_bytes.clone() } else { bytes.into_bytes() };
+    put_back(orig, orig_ct, o, out, ct, part, bytes);
+    if !same_with_rels(orig, &o_drawing, out, &w_drawing) {
+        put_back(orig, orig_ct, &o_drawing, out, ct, &w_drawing, orig.parts[&o_drawing].clone());
+    }
+    true
+}
+
+/// The byte range of the value of `relId` in a SmartArt data part's `dataModelExt` element.
+fn drawing_rel_id(xml: &str) -> Option<(usize, usize)> {
+    let at = xml.find("dataModelExt")?;
+    let end = at + xml[at..].find('>')?;
+    let key = "relId=\"";
+    let s = at + xml[at..end].find(key)? + key.len();
+    let e = s + xml[s..end].find('"')?;
+    Some((s, e))
+}
+
+/// `part` in `out` already holds `o`'s bytes and its relationships reach parts with the same bytes.
+fn same_with_rels(orig: &Package, o: &str, out: &Package, part: &str) -> bool {
+    let inner = |p: &Package, n: &str| -> Option<Vec<(String, Vec<u8>)>> {
+        let mut v = Vec::new();
+        for r in p.parts.get(&rels_name_of(n)).map(|b| parse_rels(b)).unwrap_or_default() {
+            if r.external {
+                continue;
+            }
+            v.push((r.ty.clone(), p.parts.get(&resolve(p, n, &r.target)?)?.clone()));
+        }
+        v.sort();
+        Some(v)
+    };
+    orig.parts.get(o) == out.parts.get(part) && inner(orig, o).is_some() && inner(orig, o) == inner(out, part)
+}
+
+/// `bytes` (the original part `o`) at `part` in `out`, with `o`'s relationships and every part they reach copied
+/// from the original. The engine's relationships of `part` go, and so do their targets when nothing else uses them.
+fn put_back(orig: &Package, orig_ct: &str, o: &str, out: &mut Package, ct: &mut String, part: &str, bytes: Vec<u8>) {
+    let rn = rels_name_of(part);
+    let old: Vec<String> = out.parts.get(&rn).map(|b| parse_rels(b)).unwrap_or_default().into_iter().filter(|r| !r.external).filter_map(|r| resolve(out, part, &r.target)).collect();
+    out.remove(&rn);
+    collect_garbage(out, ct, old);
+    out.insert(part.to_string(), bytes);
+    if let Some(want) = content_type_of(orig_ct, o)
+        && content_type_of(ct, part).as_deref() != Some(want.as_str())
+        && let Some(x) = set_override(ct, part, &want)
+    {
+        *ct = x;
+    }
+    copy_rels(orig, orig_ct, o, out, ct, part, 0);
+}
+
+/// Copies the relationships of the original part `o` to `at` in `out`, and the parts they reach (recursively),
+/// each under its own name when free, a fresh name otherwise; a picture already in `out` with the same bytes is
+/// shared. Targets are rewritten only in the `.rels` files.
+fn copy_rels(orig: &Package, orig_ct: &str, o: &str, out: &mut Package, ct: &mut String, at: &str, depth: usize) {
+    let Some(rb) = orig.parts.get(&rels_name_of(o)) else { return };
+    let mut list: Vec<(String, String, String, bool)> = Vec::new();
+    let mut todo: Vec<(String, String)> = Vec::new();
+    for r in parse_rels(rb) {
+        if r.external {
+            list.push((r.id, r.ty, r.target, true));
+            continue;
+        }
+        let Some(t) = resolve(orig, o, &r.target) else { continue };
+        let tb = &orig.parts[&t];
+        let name = if r.ty == REL_IMAGE && out.parts.get(&t) == Some(tb) {
+            t.clone()
+        } else {
+            let n = fresh_name(out, &t);
+            out.insert(n.clone(), tb.clone());
+            if let Some(want) = content_type_of(orig_ct, &t)
+                && content_type_of(ct, &n).as_deref() != Some(want.as_str())
+                && let Some(x) = set_override(ct, &n, &want)
+            {
+                *ct = x;
+            }
+            if depth < MAX_DEPTH {
+                todo.push((t.clone(), n.clone()));
+            }
+            n
+        };
+        list.push((r.id, r.ty, relative(at, &name), false));
+    }
+    out.insert(rels_name_of(at), rels_text(&list).into_bytes());
+    for (t, n) in todo {
+        copy_rels(orig, orig_ct, &t, out, ct, &n, depth + 1);
+    }
+}
+
+/// `name` when `out` has no such part, else `dir/stem_keptN.ext`.
+fn fresh_name(out: &Package, name: &str) -> String {
+    if !out.parts.contains_key(name) && !out.parts.contains_key(&rels_name_of(name)) {
+        return name.to_string();
+    }
+    let (stem, ext) = name.rsplit_once('.').map(|(a, b)| (a, format!(".{b}"))).unwrap_or((name, String::new()));
+    (1..).map(|i| format!("{stem}_kept{i}{ext}")).find(|n| !out.parts.contains_key(n) && !out.parts.contains_key(&rels_name_of(n))).expect("a name")
+}
+
+/// Removes each of `parts` that no relationship in `out` reaches any more, with its relationships, its content
+/// type override and, in turn, what only it reached.
+fn collect_garbage(out: &mut Package, ct: &mut String, mut parts: Vec<String>) {
+    while let Some(p) = parts.pop() {
+        if !out.parts.contains_key(&p) || referenced(out, &p) {
+            continue;
+        }
+        out.remove(&p);
+        if let Some(x) = remove_override(ct, &p) {
+            *ct = x;
+        }
+        let rn = rels_name_of(&p);
+        if let Some(b) = out.parts.get(&rn).cloned() {
+            out.remove(&rn);
+            for r in parse_rels(&b) {
+                if let (false, Some(t)) = (r.external, resolve(out, &p, &r.target)) {
+                    parts.push(t);
+                }
+            }
+        }
+    }
+}
+
+fn referenced(p: &Package, name: &str) -> bool {
+    p.parts.iter().filter(|(n, _)| is_rels(n)).any(|(n, b)| {
+        let Some(s) = source_of(n) else { return false };
+        parse_rels(b).iter().any(|r| !r.external && resolve(p, &s, &r.target).as_deref() == Some(name))
+    })
+}
+
+/// (source, relationship, target) of every internal relationship of type `ty`, in name order.
+fn rels_of_type(p: &Package, ty: &str) -> Vec<(String, Rel, String)> {
+    let mut v = Vec::new();
+    for (n, b) in p.parts.iter().filter(|(n, _)| is_rels(n)) {
+        let Some(s) = source_of(n) else { continue };
+        for r in parse_rels(b) {
+            if !r.external && r.ty == ty
+                && let Some(t) = resolve(p, &s, &r.target)
+            {
+                v.push((s.clone(), r, t));
+            }
+        }
+    }
+    v
+}
+
+/// The (source, target) of every part reached by a relationship of type `ty`, in the order a walk from the
+/// package root meets them: a part's relationships in the order their ids first appear in its XML, the rest after.
+fn walk(p: &Package, ty: &str) -> Vec<(String, String)> {
+    let mut seen: BTreeSet<String> = BTreeSet::new();
+    let mut found: Vec<(String, String)> = Vec::new();
+    let mut stack: Vec<String> = vec![String::new()];
+    seen.insert(String::new());
+    // Depth first, in order: push children in reverse.
+    while let Some(part) = stack.pop() {
+        let Some(rb) = p.parts.get(&rels_name_of(&part)) else { continue };
+        let xml = p.parts.get(&part).filter(|_| part.ends_with(".xml")).map(|b| String::from_utf8_lossy(b).into_owned()).unwrap_or_default();
+        let mut rs: Vec<(usize, usize, Rel)> =
+            parse_rels(rb).into_iter().enumerate().map(|(i, r)| (xml.find(&format!("\"{}\"", r.id)).unwrap_or(usize::MAX), i, r)).collect();
+        rs.sort_by_key(|(at, i, _)| (*at, *i));
+        let mut next = Vec::new();
+        for (_, _, r) in rs {
+            if r.external {
+                continue;
+            }
+            let Some(t) = resolve(p, &part, &r.target) else { continue };
+            if r.ty == ty && !found.iter().any(|f| f.1 == t) {
+                found.push((part.clone(), t.clone()));
+            }
+            if seen.insert(t.clone()) {
+                next.push(t);
+            }
+        }
+        stack.extend(next.into_iter().rev());
+    }
+    found
+}
+
+/// `ppt/slides/slide12.xml` -> `ppt/slides/slideN.xml`.
+fn class(name: &str) -> String {
+    let mut s = String::new();
+    for c in name.chars() {
+        if c.is_ascii_digit() {
+            if !s.ends_with('N') {
+                s.push('N');
+            }
+        } else {
+            s.push(c);
+        }
+    }
+    s
+}
+
+// ---- the VML drawing of a deck's OLE objects --------------------------------------------------------------
+
+/// A slide's legacy VML drawing (the OLE object's VML shape and preview) is named by no `r:id`: PowerPoint links
+/// it by shape id. DeckCraft keeps the OLE object and drops the drawing. It comes back, with its picture, on every
+/// written slide that holds an OLE object of the original slide (same bytes) and has no VML drawing of its own.
+fn carry_vml(orig: &Package, orig_ct: &str, out: &mut Package, ct: &mut String) -> bool {
+    let mut changed = false;
+    for (source, rel, vml) in rels_of_type(orig, REL_VML) {
+        if !source.starts_with("ppt/slides/") {
+            continue;
+        }
+        let oles: Vec<&Vec<u8>> = rels_of_type(orig, REL_OLE).into_iter().filter(|x| x.0 == source).filter_map(|x| orig.parts.get(&x.2)).collect();
+        if oles.is_empty() {
+            continue;
+        }
+        let targets: Vec<String> = rels_of_type(out, REL_OLE)
+            .into_iter()
+            .filter(|x| x.0.starts_with("ppt/slides/") && out.parts.get(&x.2).is_some_and(|b| oles.contains(&b)))
+            .map(|x| x.0)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        for s in targets {
+            let rn = rels_name_of(&s);
+            let cur = out.parts.get(&rn).map(|b| text(b)).unwrap_or_else(empty_rels);
+            let have = parse_rels(cur.as_bytes());
+            if have.iter().any(|r| r.ty == REL_VML) {
+                continue;
+            }
+            let name = fresh_name(out, &vml);
+            out.insert(name.clone(), orig.parts[&vml].clone());
+            if let Some(want) = content_type_of(orig_ct, &vml)
+                && content_type_of(ct, &name).as_deref() != Some(want.as_str())
+                && let Some(x) = set_override(ct, &name, &want)
+            {
+                *ct = x;
+            }
+            copy_rels(orig, orig_ct, &vml, out, ct, &name, 0);
+            let used: BTreeSet<String> = have.into_iter().map(|r| r.id).collect();
+            let Some(new) = add_rel(&cur, &fresh_id(&rel.id, &used), REL_VML, &relative(&s, &name)) else { continue };
+            out.insert(rn, new.into_bytes());
+            changed = true;
+        }
+    }
+    changed
 }
 
 /// One relationship to bring back: the whole part, what hangs off it, and the relationship from its source.
@@ -379,6 +740,17 @@ fn fresh_id(want: &str, used: &BTreeSet<String>) -> String {
     (1..).map(|i| format!("rIdKept{i}")).find(|i| !used.contains(i)).expect("an id")
 }
 
+fn rels_text(list: &[(String, String, String, bool)]) -> String {
+    let mut x = empty_rels();
+    let body: String = list
+        .iter()
+        .map(|(id, ty, t, ext)| format!("<Relationship Id=\"{}\" Type=\"{}\" Target=\"{}\"{}/>", esc(id), esc(ty), esc(t), if *ext { " TargetMode=\"External\"" } else { "" }))
+        .collect();
+    let i = x.rfind("</Relationships>").expect("the close tag");
+    x.insert_str(i, &body);
+    x
+}
+
 fn add_rel(xml: &str, id: &str, ty: &str, target: &str) -> Option<String> {
     let tag = format!("<Relationship Id=\"{}\" Type=\"{}\" Target=\"{}\"/>", esc(id), esc(ty), esc(target));
     insert_into_root(xml, "Relationships", &tag)
@@ -420,6 +792,16 @@ fn set_override(ct: &str, name: &str, content_type: &str) -> Option<String> {
     }
     let tag = format!("<Override PartName=\"{}\" ContentType=\"{}\"/>", esc(&part), esc(content_type));
     insert_into_root(&cleaned, "Types", &tag)
+}
+
+/// `ct` without an override for `name`; `None` when it has none.
+fn remove_override(ct: &str, name: &str) -> Option<String> {
+    let part = format!("/{name}");
+    let (s, e, _) = std::iter::successors(find_element(ct, "Override", 0), |(_, e, _)| find_element(ct, "Override", *e))
+        .find(|(_, _, a)| a.iter().any(|(k, v)| k == "PartName" && v.eq_ignore_ascii_case(&part)))?;
+    let mut x = ct.to_string();
+    x.replace_range(s..e, "");
+    Some(x)
 }
 
 // ---- a small reader for the flat XML of package plumbing ---------------------------------------------------

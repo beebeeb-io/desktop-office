@@ -516,3 +516,261 @@ fn edit_preserve_corpus_pptx_none_refused() {
     assert!(opened >= 20);
     assert_eq!(refused, 0, "no corpus deck is refused on save");
 }
+
+// ---- charts, OLE objects, VML and SmartArt (board 139) -------------------------------------------------
+
+const R: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
+
+/// The relationship types whose parts must come through an edit and save, byte-equal where the edit did not
+/// touch them, with their own relationships and content type.
+fn kind_of(ty: &str) -> Option<&'static str> {
+    Some(match ty.rsplit('/').next()? {
+        "chart" | "chartEx" | "chartUserShapes" => "chart",
+        "oleObject" => "ole",
+        "package" => "embedded package",
+        "vmlDrawing" => "vml",
+        "diagramData" | "diagramLayout" | "diagramQuickStyle" | "diagramColors" | "diagramDrawing" => "smartart",
+        _ => return None,
+    })
+}
+
+fn resolve_name(source: &str, target: &str) -> String {
+    let dir = source.rfind('/').map(|i| &source[..=i]).unwrap_or("");
+    let joined = if let Some(abs) = target.strip_prefix('/') { abs.to_string() } else { format!("{dir}{target}") };
+    let mut segs: Vec<&str> = Vec::new();
+    for seg in joined.split('/') {
+        match seg {
+            "." | "" => {}
+            ".." => {
+                segs.pop();
+            }
+            x => segs.push(x),
+        }
+    }
+    segs.join("/")
+}
+
+fn rels_name(source: &str) -> String {
+    match source.rfind('/') {
+        Some(i) => format!("{}/_rels/{}.rels", &source[..i], &source[i + 1..]),
+        None => format!("_rels/{source}.rels"),
+    }
+}
+
+/// Every internal relationship in the package: (source, type, target part).
+fn all_rels(p: &Parts) -> Vec<(String, String, String)> {
+    let mut v = Vec::new();
+    for (n, b) in p.iter().filter(|(n, _)| n.ends_with(".rels")) {
+        let source = if n == "_rels/.rels" { String::new() } else { n.replacen("_rels/", "", 1).trim_end_matches(".rels").to_string() };
+        for tag in s(b).split("<Relationship ").skip(1) {
+            let head = tag.split('>').next().unwrap();
+            if head.contains("TargetMode=\"External\"") {
+                continue;
+            }
+            let (_, ty, t) = rels(&format!("<Relationship {head}>")).remove(0);
+            v.push((source.clone(), ty, resolve_name(&source, &t)));
+        }
+    }
+    v
+}
+
+/// The (kind, part) of every part of the kinds above.
+fn kind_parts(p: &Parts) -> Vec<(&'static str, String, String)> {
+    let mut v: Vec<_> = all_rels(p).into_iter().filter_map(|(_, ty, t)| Some((kind_of(&ty)?, ty, t))).filter(|x| p.contains_key(&x.2)).collect();
+    v.sort();
+    v.dedup();
+    v
+}
+
+/// Per original part of a kind: is a byte-equal part in `out`, reached by the same relationship type, with the
+/// same content type, whose own relationships reach byte-equal parts of the same types? Returns the misses.
+fn kinds_missing(orig: &Parts, out: &Parts) -> Vec<String> {
+    let out_rels = all_rels(out);
+    let mut missing = Vec::new();
+    for (kind, ty, name) in kind_parts(orig) {
+        // SmartArt data names its drawing by the id of one of the slide's relationships, which the engine
+        // numbers its own way: that one value may differ, and must name the slide's diagram drawing.
+        let same = |src: &str, n: &str| -> bool {
+            if !ty.ends_with("/diagramData") {
+                return out.get(n) == orig.get(&name);
+            }
+            let (a, b) = (s(&out[n]), s(&orig[&name]));
+            let id = |x: &str| x.find("dataModelExt").and_then(|i| x[i..].find("relId=\"").map(|j| i + j + 7)).map(|k| (k, k + x[k..].find('"').unwrap()));
+            match (id(&a), id(&b)) {
+                (Some((s1, e1)), Some((s2, e2))) => {
+                    format!("{}{}", &a[..s1], &a[e1..]) == format!("{}{}", &b[..s2], &b[e2..])
+                        && rels(&s(&out[&rels_name(src)])).iter().any(|r| r.0 == a[s1..e1] && r.1.ends_with("/diagramDrawing"))
+                }
+                _ => a == b,
+            }
+        };
+        let ok = out_rels.iter().filter(|(src, t, n)| *t == ty && same(src, n)).any(|(_, _, n)| {
+            let same_ct = content_type(out, n) == content_type(orig, &name);
+            let inner = |p: &Parts, part: &str| -> Vec<(String, Vec<u8>)> {
+                let mut v: Vec<_> = all_rels(p).into_iter().filter(|r| r.0 == part).filter_map(|r| Some((r.1, p.get(&r.2)?.clone()))).collect();
+                v.sort();
+                v
+            };
+            same_ct && inner(out, n) == inner(orig, &name)
+        });
+        if !ok {
+            missing.push(format!("{kind} {name}"));
+        }
+    }
+    missing
+}
+
+/// The corpus edit of `corpus_edit.rs`, short: text in Word, a cell clear of the data, and for a deck a new slide,
+/// a copy of the first and text typed into the first slide.
+fn edit_and_save(kind: EditKind, bytes: &[u8]) -> Vec<u8> {
+    let mut doc = EditDoc::open(kind, bytes, &Limits::default()).expect("opens");
+    match kind {
+        EditKind::Docx => {
+            doc.apply(&Op::InsertText("ZQX ".into())).unwrap();
+        }
+        EditKind::Xlsx => {
+            let info = doc.sheets().unwrap();
+            let (r, c) = (info.sheets[0].rows + 2, info.sheets[0].cols + 2);
+            doc.apply(&Op::SetCell { sheet: 0, row: r, col: c, text: "ZQX".into() }).unwrap();
+        }
+        EditKind::Pptx => {
+            let _ = doc.apply(&Op::NewSlide { layout: None });
+            let _ = doc.apply(&Op::DuplicateSlide(0));
+            let _ = doc.apply(&Op::SelectShape { slide: 0, x_pt: 360.0, y_pt: 60.0 }).and_then(|_| doc.apply(&Op::SelectAll)).and_then(|_| doc.apply(&Op::InsertText("ZQX".into())));
+        }
+    }
+    doc.save().expect("saves")
+}
+
+/// Every corpus file of `ext` with a chart, OLE object, embedded package, VML drawing or SmartArt part keeps
+/// each such part byte-equal, referenced, typed and with its own relationships. Returns (files, kept).
+fn kinds_survive(kind: EditKind, ext: &str) -> (usize, usize) {
+    let (mut files, mut kept) = (0, 0);
+    let mut misses = Vec::new();
+    for (name, bytes) in corpus(ext) {
+        let orig = parts_of(&bytes);
+        if kind_parts(&orig).is_empty() {
+            continue;
+        }
+        files += 1;
+        let out = parts_of(&edit_and_save(kind, &bytes));
+        assert_valid(&out, &name);
+        let m = kinds_missing(&orig, &out);
+        if m.is_empty() {
+            kept += 1;
+        } else {
+            misses.push(format!("{name}: {}", m.join(", ")));
+        }
+    }
+    eprintln!("edit_preserve kinds {ext}: {kept}/{files} keep every chart/OLE/VML/SmartArt part; misses: {misses:#?}");
+    (files, kept)
+}
+
+#[test]
+fn edit_preserve_corpus_docx_keeps_charts_ole_vml_smartart() {
+    let (files, kept) = kinds_survive(EditKind::Docx, "docx");
+    assert!(files >= 1);
+    assert_eq!(kept, files);
+}
+
+#[test]
+fn edit_preserve_corpus_xlsx_keeps_charts_ole_vml_smartart() {
+    let (files, kept) = kinds_survive(EditKind::Xlsx, "xlsx");
+    assert!(files >= 2);
+    assert_eq!(kept, files);
+}
+
+#[cfg(feature = "edit-slides")]
+#[test]
+fn edit_preserve_corpus_pptx_keeps_charts_ole_vml_smartart() {
+    let (files, kept) = kinds_survive(EditKind::Pptx, "pptx");
+    assert!(files >= 6);
+    assert_eq!(kept, files);
+}
+
+/// A Word file from the corpus with the chart (and its embedded workbook) of `corpus/pptx/bar-chart.pptx` put
+/// inline in its first paragraph, as Word writes a chart.
+fn docx_with_chart() -> Vec<u8> {
+    let (_, deck) = corpus("pptx").into_iter().find(|(n, _)| n == "bar-chart.pptx").unwrap();
+    let deck = parts_of(&deck);
+    let (_, bytes) = corpus("docx").into_iter().find(|(n, _)| n == "59030.docx").unwrap();
+    let mut p = parts_of(&bytes);
+    p.insert("word/charts/chart1.xml".into(), deck["ppt/charts/chart1.xml"].clone());
+    p.insert("word/embeddings/Microsoft_Excel_Worksheet1.xlsx".into(), deck["ppt/embeddings/Microsoft_Excel_Worksheet1.xlsx"].clone());
+    p.insert("word/charts/_rels/chart1.xml.rels".into(), rels_xml(&[("rId1", &format!("{R}package"), "../embeddings/Microsoft_Excel_Worksheet1.xlsx")]).into_bytes());
+    replace_in(&mut p, "word/_rels/document.xml.rels", "</Relationships>", &format!("<Relationship Id=\"rIdChart9\" Type=\"{CHART_REL}\" Target=\"charts/chart1.xml\"/></Relationships>"));
+    replace_in(&mut p, "[Content_Types].xml", "</Types>", &format!("<Override PartName=\"/word/charts/chart1.xml\" ContentType=\"{CHART_CT}\"/><Default Extension=\"xlsx\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\"/></Types>"));
+    let frame = "<w:r><w:drawing><wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\" xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\"><wp:extent cx=\"5486400\" cy=\"3200400\"/><wp:docPr id=\"901\" name=\"Chart 1\"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/chart\"><c:chart xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" r:id=\"rIdChart9\"/></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>";
+    let doc = s(&p["word/document.xml"]);
+    let i = doc.find("<w:body>").expect("a body") + "<w:body>".len();
+    let doc = format!("{}<w:p>{frame}</w:p>{}", &doc[..i], &doc[i..]);
+    p.insert("word/document.xml".into(), doc.into_bytes());
+    zip_of(&p)
+}
+
+#[test]
+fn edit_preserve_a_chart_in_a_docx_comes_through_byte_equal() {
+    let bytes = docx_with_chart();
+    let orig = parts_of(&bytes);
+    let out = parts_of(&edit_and_save(EditKind::Docx, &bytes));
+    assert_valid(&out, "docx with a chart");
+    assert_eq!(kinds_missing(&orig, &out), Vec::<String>::new());
+}
+
+/// A deck whose one chart has an embedded workbook; `chart` is the chart's XML, `book` the workbook's name.
+fn deck_with_embedded_chart(chart: &str, book: &str) -> Parts {
+    let mut p = deck_with_charts(&[1], false);
+    p.insert("ppt/charts/chart1.xml".into(), chart.as_bytes().to_vec());
+    p.insert(format!("ppt/embeddings/{book}"), b"PK workbook bytes".to_vec());
+    p.insert("ppt/charts/_rels/chart1.xml.rels".into(), rels_xml(&[("rId1", &format!("{R}package"), &format!("../embeddings/{book}"))]).into_bytes());
+    replace_in(&mut p, "[Content_Types].xml", "</Types>", "<Default Extension=\"xlsx\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\"/></Types>");
+    p
+}
+
+#[test]
+fn edit_preserve_a_chart_the_edit_did_not_touch_comes_back_byte_equal_with_its_workbook() {
+    let original = deck_with_embedded_chart("<c:chartSpace xmlns:c=\"c\">\r\n<!-- original, every detail --></c:chartSpace>", "Microsoft_Excel_Worksheet1.xlsx");
+    // The engine writes the chart its own way and renames the workbook; with no edit it writes the same.
+    let written = deck_with_embedded_chart("<c:chartSpace xmlns:c=\"c\"><!-- engine --></c:chartSpace>", "kept1.xlsx");
+    let out = parts_of(&preserve::carry_with(&zip_of(&original), Some(&zip_of(&written)), zip_of(&written)).unwrap());
+    assert_eq!(out["ppt/charts/chart1.xml"], original["ppt/charts/chart1.xml"], "the original chart, byte-equal");
+    assert_eq!(target_of(&out, "ppt/charts/chart1.xml", &format!("{R}package")).as_deref(), Some("ppt/embeddings/Microsoft_Excel_Worksheet1.xlsx"));
+    assert!(!out.contains_key("ppt/embeddings/kept1.xlsx"), "the engine's copy, now used by nothing, is gone");
+    assert_eq!(content_type(&out, "ppt/charts/chart1.xml").as_deref(), Some(CHART_CT));
+    assert_valid(&out, "restored chart");
+    assert_eq!(kinds_missing(&original, &out), Vec::<String>::new());
+}
+
+#[test]
+fn edit_preserve_a_chart_the_edit_changed_stays_the_engines() {
+    let original = deck_with_embedded_chart("<c:chartSpace xmlns:c=\"c\"><c:f>Old!$A$1</c:f></c:chartSpace>", "Microsoft_Excel_Worksheet1.xlsx");
+    let baseline = deck_with_embedded_chart("<c:chartSpace xmlns:c=\"c\"><c:f>Old!$A$1</c:f><!-- engine --></c:chartSpace>", "kept1.xlsx");
+    // The edit renamed the sheet: the engine's chart differs from its no-edit save, so it is the edit's.
+    let written = deck_with_embedded_chart("<c:chartSpace xmlns:c=\"c\"><c:f>New!$A$1</c:f><!-- engine --></c:chartSpace>", "kept1.xlsx");
+    let out = parts_of(&preserve::carry_with(&zip_of(&original), Some(&zip_of(&baseline)), zip_of(&written)).unwrap());
+    assert_eq!(out, written, "nothing reverted");
+    // Two original charts the engine writes alike: which is which cannot be told, so neither is restored.
+    let mut original = deck_with_charts(&[1, 2], false);
+    original.insert("ppt/charts/chart2.xml".into(), b"<c:chartSpace xmlns:c=\"c\"><!-- other --></c:chartSpace>".to_vec());
+    let mut written = deck_with_charts(&[1, 2], false);
+    for n in [1, 2] {
+        written.insert(format!("ppt/charts/chart{n}.xml"), b"<c:chartSpace xmlns:c=\"c\"/>".to_vec());
+    }
+    let out = parts_of(&preserve::carry_with(&zip_of(&original), Some(&zip_of(&written)), zip_of(&written)).unwrap());
+    assert_eq!(out, written);
+}
+
+#[test]
+fn edit_preserve_a_renamed_sheet_keeps_the_engines_chart() {
+    let (_, bytes) = corpus("xlsx").into_iter().find(|(n, _)| n == "45540_classic_Footer.xlsx").unwrap();
+    let orig = parts_of(&bytes);
+    let mut doc = EditDoc::open(EditKind::Xlsx, &bytes, &Limits::default()).unwrap();
+    // Sheet 2 ("Top Six Functions") is the one chart 1's series formulas name; chart 2 names another sheet.
+    doc.apply(&Op::RenameSheet { sheet: 2, name: "Renamed".into() }).unwrap();
+    let out = parts_of(&doc.save().unwrap());
+    assert_valid(&out, "renamed sheet");
+    assert!(s(&orig["xl/charts/chart1.xml"]).contains("'Top Six Functions'!"));
+    assert_ne!(out.get("xl/charts/chart1.xml"), orig.get("xl/charts/chart1.xml"), "the chart on the renamed sheet is not reverted");
+    assert!(!s(&out["xl/charts/chart1.xml"]).contains("'Top Six Functions'!"), "and names the sheet by its new name");
+    assert_eq!(out.get("xl/charts/chart2.xml"), orig.get("xl/charts/chart2.xml"), "the other chart comes back byte-equal");
+}

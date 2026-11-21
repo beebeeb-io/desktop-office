@@ -71,7 +71,7 @@ fn docx(template: Template) -> Result<Vec<u8>, EditError> {
         return Ok(blank);
     }
     let engine = super::word::open(&blank, &Limits::default()).map_err(|_| EditError::Engine)?;
-    let mut doc = EditDoc { kind: EditKind::Docx, original: blank, revision: 0, engine: Some(engine) };
+    let mut doc = EditDoc { kind: EditKind::Docx, original: blank, revision: 0, engine: Some(engine), baseline: Default::default() };
     let list = items(template);
     let last = list.len().saturating_sub(1);
     for (i, item) in list.iter().enumerate() {

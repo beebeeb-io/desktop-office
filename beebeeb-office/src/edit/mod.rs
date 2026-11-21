@@ -29,6 +29,9 @@ pub struct EditDoc {
     revision: u64,
     /// The engine's session for this kind (WordCraft's, for Docx); each `edit/<kind>.rs` makes and downcasts its own.
     engine: Option<Box<dyn std::any::Any + Send>>,
+    /// The engine's save of `original` with no edit, made at the first save that can use it: what tells
+    /// [`preserve::carry_with`] which rewritten chart or SmartArt parts the edit did not touch.
+    baseline: std::sync::OnceLock<Option<Vec<u8>>>,
 }
 
 impl EditDoc {
@@ -39,7 +42,7 @@ impl EditDoc {
             EditKind::Xlsx => Some(sheet::open(bytes, limits)?),
             EditKind::Pptx => Some(slide::open(bytes, limits)?),
         };
-        Ok(EditDoc { kind, original: bytes.to_vec(), revision: 0, engine })
+        Ok(EditDoc { kind, original: bytes.to_vec(), revision: 0, engine, baseline: Default::default() })
     }
 
     /// A new document from a built-in template (never from disk). Only Docs have more than `Blank`.
@@ -55,7 +58,7 @@ impl EditDoc {
                 _ => EditError::Engine,
             })?),
         };
-        Ok(EditDoc { kind, original: bytes, revision: 0, engine })
+        Ok(EditDoc { kind, original: bytes, revision: 0, engine, baseline: Default::default() })
     }
 
     pub fn kind(&self) -> EditKind {
@@ -87,12 +90,30 @@ impl EditDoc {
 
     /// Serialise the document. The engine's output goes through [`preserve::carry`] with the original.
     pub fn save(&self) -> Result<Vec<u8>, SaveError> {
-        let written = match self.kind {
-            EditKind::Docx => word::save(self)?,
-            EditKind::Xlsx => sheet::save(self)?,
-            EditKind::Pptx => slide::save(self)?,
-        };
-        preserve::carry(&self.original, written)
+        let written = self.engine_save()?;
+        preserve::carry_with(&self.original, self.baseline(), written)
+    }
+
+    fn engine_save(&self) -> Result<Vec<u8>, SaveError> {
+        match self.kind {
+            EditKind::Docx => word::save(self),
+            EditKind::Xlsx => sheet::save(self),
+            EditKind::Pptx => slide::save(self),
+        }
+    }
+
+    /// The original opened again and saved with no edit (once; only for a file with a part `carry_with` restores).
+    fn baseline(&self) -> Option<&[u8]> {
+        self.baseline
+            .get_or_init(|| {
+                if !preserve::wants_baseline(&self.original) {
+                    return None;
+                }
+                // The original passed the caller's limits when it was opened; the default table is what a
+                // template uses, and a file it refuses only goes without the baseline.
+                EditDoc::open(self.kind, &self.original, &Limits::default()).ok()?.engine_save().ok()
+            })
+            .as_deref()
     }
 
     /// The selection as plain text and, where the engine has it, HTML.
