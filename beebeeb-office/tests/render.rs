@@ -151,3 +151,28 @@ fn a_password_protected_file_says_password() {
     assert!(locked.starts_with(&[0xD0, 0xCF, 0x11, 0xE0]), "an encrypted package is a compound file");
     assert_eq!(Document::open(DocKind::Docx, &locked, &Limits::default()).err(), Some(OpenError::Password));
 }
+
+/// A page's text is laid out in points: the display's scale changes how fine it is drawn, never
+/// where the text is (the app turns a press into page points and draws the caret from page points).
+#[test]
+fn a_page_text_sits_at_the_same_points_at_every_display_scale() {
+    let doc = Document::open(DocKind::Docx, &dense_docx(), &Limits::default()).expect("opens");
+    let boxes: Vec<[f32; 4]> = [4.0f32 / 3.0, 2.0, 8.0 / 3.0]
+        .into_iter()
+        .map(|scale| {
+            let (info, rgba) = render(&doc, 0, scale);
+            let (mut l, mut t, mut r, mut b) = (u32::MAX, u32::MAX, 0u32, 0u32);
+            for (i, px) in rgba.chunks_exact(4).enumerate() {
+                if px[0] < 200 || px[1] < 200 || px[2] < 200 {
+                    let (x, y) = (i as u32 % info.w, i as u32 / info.w);
+                    (l, t, r, b) = (l.min(x), t.min(y), r.max(x + 1), b.max(y + 1));
+                }
+            }
+            assert!(l < r && t < b, "the page has ink");
+            [l as f32 / scale, t as f32 / scale, r as f32 / scale, b as f32 / scale]
+        })
+        .collect();
+    for b in &boxes {
+        assert!((0..4).all(|i| (b[i] - boxes[0][i]).abs() <= 2.0), "the ink moved with the scale: {boxes:?}");
+    }
+}

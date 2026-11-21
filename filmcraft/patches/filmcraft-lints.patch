@@ -1,0 +1,100 @@
+diff --git a/filmcraft/filmcraft-codecs/src/audio.rs b/filmcraft/filmcraft-codecs/src/audio.rs
+index ef13ac669..a17789dfc 100644
+--- a/filmcraft/filmcraft-codecs/src/audio.rs
++++ b/filmcraft/filmcraft-codecs/src/audio.rs
+@@ -80,6 +80,8 @@ fn vorbis_to_wav_order(channels: usize) -> Option<&'static [usize]> {
+ /// used elsewhere, as the AC-3 decoder does and the AAC encoder's caller undoes on export. Only the
+ /// unambiguous channel configurations 3–6, 11 (6.1: … LFE, back centre, sides) and 12 (7.1: … LFE,
+ /// backs, sides); 1, 2, 7 and PCE layouts keep the decoded order.
++// Modified (filmcraft/PATCHES.md, patch 3): used only by the AAC decoder.
++#[cfg_attr(not(feature = "aac"), allow(dead_code))]
+ fn aac_to_wav_order(channel_config: u8) -> Option<&'static [usize]> {
+     Some(match channel_config {
+         3 => &[1, 2, 0],
+@@ -442,6 +444,8 @@ pub fn aac_output_rate<'a>(
+ }
+ 
+ /// Whether [`PacketDecoder::aac`] upsamples a decoded AAC core at `core` Hz to `rate` (HE-AAC).
++// Modified (filmcraft/PATCHES.md, patch 3): used only with `aac`.
++#[cfg_attr(not(feature = "aac"), allow(dead_code))]
+ fn upsamples_core(core: u32, rate: u32) -> bool {
+     core.checked_mul(2) == Some(rate)
+ }
+diff --git a/filmcraft/filmcraft-codecs/src/avi.rs b/filmcraft/filmcraft-codecs/src/avi.rs
+index dcb8dfc3a..34d156a34 100644
+--- a/filmcraft/filmcraft-codecs/src/avi.rs
++++ b/filmcraft/filmcraft-codecs/src/avi.rs
+@@ -359,8 +359,10 @@ impl AviSource {
+                         .collect()
+                 };
+                 let reorders = |p: &[i64]| p.windows(2).any(|w| w[1] < w[0]);
+-                if crate::avc_order::avc_presentation_order(&heads(300)).is_some_and(|p| reorders(&p))
+-                    && let Some(ranks) = crate::avc_order::avc_presentation_order(&heads(vframes.len()))
++                if crate::avc_order::avc_presentation_order(&heads(300))
++                    .is_some_and(|p| reorders(&p))
++                    && let Some(ranks) =
++                        crate::avc_order::avc_presentation_order(&heads(vframes.len()))
+                 {
+                     // the pictures keep the slots they occupy (empty drop-frame chunks between them
+                     // stay), shown in their presentation order
+diff --git a/filmcraft/filmcraft-codecs/src/hw.rs b/filmcraft/filmcraft-codecs/src/hw.rs
+index c2430f1d9..c479021d8 100644
+--- a/filmcraft/filmcraft-codecs/src/hw.rs
++++ b/filmcraft/filmcraft-codecs/src/hw.rs
+@@ -13,6 +13,8 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+ use filmcraft_isobmff::{CodecConfig, SampleEntry};
+ 
+ pub use crate::hw_frame::{FrameCodec, FrameStreamInfo, PictureParams};
++// Modified (filmcraft/PATCHES.md, patch 3): the SPS helpers are used only with `h264` / `hevc`.
++#[cfg_attr(not(all(feature = "h264", feature = "hevc")), allow(unused_imports))]
+ use crate::video::{
+     avcc_length_size, h264_disposable, hevc_disposable, hvcc_length_size_and_tid, sar_par,
+     vui_color,
+@@ -220,6 +222,8 @@ fn without_trailing_zeros(nal: &[u8]) -> &[u8] {
+ }
+ 
+ /// Length-prefixed parameter-set entries (`u16` length + bytes) starting at `pos`.
++// Modified (filmcraft/PATCHES.md, patch 3): read only for an `avcC` / `hvcC` record.
++#[cfg_attr(not(any(feature = "h264", feature = "hevc")), allow(dead_code))]
+ fn read_sets(rec: &[u8], pos: &mut usize, count: usize, out: &mut Vec<Vec<u8>>) -> Result<()> {
+     for _ in 0..count {
+         let len = rec
+diff --git a/filmcraft/filmcraft-codecs/src/lib.rs b/filmcraft/filmcraft-codecs/src/lib.rs
+index adae5e620..891a7fcc8 100644
+--- a/filmcraft/filmcraft-codecs/src/lib.rs
++++ b/filmcraft/filmcraft-codecs/src/lib.rs
+@@ -98,6 +98,8 @@ impl From<CodecError> for filmcraft_media::MediaError {
+ }
+ 
+ /// Our own (pure-Rust) decoders in this build, in the order they are tried.
++// Modified (filmcraft/PATCHES.md, patch 3): the entries sit behind their features, which `vec![]` cannot carry.
++#[allow(clippy::vec_init_then_push)]
+ fn builtin_factories() -> Vec<VideoDecoderFactory> {
+     let mut f: Vec<VideoDecoderFactory> = Vec::new();
+     #[cfg(feature = "h264")]
+diff --git a/filmcraft/filmcraft-codecs/src/mpeg.rs b/filmcraft/filmcraft-codecs/src/mpeg.rs
+index 1095fc341..dcf57be10 100644
+--- a/filmcraft/filmcraft-codecs/src/mpeg.rs
++++ b/filmcraft/filmcraft-codecs/src/mpeg.rs
+@@ -57,6 +57,8 @@ pub fn sniff(head: &[u8]) -> bool {
+ enum VKind {
+     Mpeg2,
+     H264,
++    // Modified (filmcraft/PATCHES.md, patch 3): made only with `hevc`.
++    #[cfg_attr(not(feature = "hevc"), allow(dead_code))]
+     Hevc,
+ }
+ 
+@@ -496,6 +498,12 @@ impl MpegSource {
+     }
+ 
+     /// Fill in the video stream info from the first picture.
++    // Modified (filmcraft/PATCHES.md, patch 3): the first unit, the sequence header and the colour
++    // default are read only by the MPEG-2 arm.
++    #[cfg_attr(
++        not(feature = "mpeg2"),
++        allow(unused_variables, unused_assignments, unused_mut)
++    )]
+     fn describe_video(&mut self, rate_from_pts: Option<f64>) -> crate::Result<()> {
+         let mut seq_header = None;
+         let v = self

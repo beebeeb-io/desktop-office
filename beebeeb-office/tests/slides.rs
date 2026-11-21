@@ -481,8 +481,21 @@ fn the_viewer_links_no_media_or_engine_crate() {
         "reqwest",
         "hyper",
     ];
-    let found: Vec<&str> = names.iter().copied().filter(|n| banned.contains(n) || n.starts_with("symphonia")).collect();
-    assert!(found.is_empty(), "media, engine or network crates in the lock: {found:?}");
+    // The lock lists the optional `deckcraft-engine` (feature `edit-slides`, off by default), so the lock alone cannot
+    // show what is linked: ask cargo for the default build's graph (the same instrument as scripts/check-closure.sh).
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
+    let tree = std::process::Command::new(cargo)
+        .args(["tree", "--locked", "-e", "normal", "--prefix", "none", "-f", "{p}", "-p", "beebeeb-office", "--manifest-path"])
+        .arg(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml"))
+        .output()
+        .expect("run cargo tree");
+    assert!(tree.status.success(), "cargo tree failed");
+    let tree = String::from_utf8(tree.stdout).expect("utf-8");
+    let linked: Vec<&str> = tree.lines().filter_map(|l| l.split_whitespace().next()).collect();
+    assert!(linked.len() >= 100, "the graph lists {} packages", linked.len());
+    assert!(linked.contains(&"deckcraft-pptx"), "the graph lists deckcraft-pptx");
+    let found: Vec<&str> = linked.iter().copied().filter(|n| banned.contains(n) || n.starts_with("symphonia")).collect();
+    assert!(found.is_empty(), "media, engine or network crates in the build: {found:?}");
 }
 
 #[test]
@@ -501,5 +514,45 @@ fn a_corpus_pptx_renders_every_slide() {
         let r = deck.render_slide(n, 1.0, &mut out).unwrap_or_else(|e| panic!("{file} slide {n}: renders ({e})"));
         assert_eq!((r.w, r.h), (w, h), "{file} slide {n}: the size asked for");
         save_png(&format!("slides-corpus-shapes-{n}"), w, h, &out);
+    }
+}
+
+// ---------------------------------------------------------------- display scale
+
+/// The box of everything that is not white, in points: (left, top, right, bottom).
+fn ink_box_pt(w: u32, rgba: &[u8], scale: f32) -> (f32, f32, f32, f32) {
+    let (mut l, mut t, mut r, mut b) = (u32::MAX, u32::MAX, 0u32, 0u32);
+    for (i, px) in rgba.chunks_exact(4).enumerate() {
+        if px[0] < 200 || px[1] < 200 || px[2] < 200 {
+            let (x, y) = (i as u32 % w, i as u32 / w);
+            (l, t, r, b) = (l.min(x), t.min(y), r.max(x + 1), b.max(y + 1));
+        }
+    }
+    assert!(l < r && t < b, "the slide has ink");
+    (l as f32 / scale, t as f32 / scale, r as f32 / scale, b as f32 / scale)
+}
+
+/// A slide's text is laid out in points: the display's scale (96 dpi: 4/3 px a point, 144 dpi: 2,
+/// 192 dpi: 8/3) changes how fine it is drawn, never where a line breaks or how far the text runs.
+#[test]
+fn a_slide_text_sits_at_the_same_points_at_every_display_scale() {
+    let title = "A long title that has to wrap onto a second line of the title placeholder at any scale";
+    let model = deck_model(defaults::WIDE, &[(LayoutType::TitleAndContent, title), (LayoutType::Title, title)]);
+    let deck = open(&write(&model));
+    for n in 0..2 {
+        let boxes: Vec<(f32, f32, f32, f32)> = [4.0 / 3.0, 2.0, 8.0 / 3.0]
+            .into_iter()
+            .map(|scale| {
+                let (info, rgba) = render(&deck, n, scale);
+                save_png(&format!("slide-scale-{n}-{}", (scale * 72.0) as u32), info.w, info.h, &rgba);
+                ink_box_pt(info.w, &rgba, scale)
+            })
+            .collect();
+        let (w_pt, h_pt) = deck.info().sizes_pt[n as usize];
+        for b in &boxes {
+            let d = [(b.0 - boxes[0].0).abs(), (b.1 - boxes[0].1).abs(), (b.2 - boxes[0].2).abs(), (b.3 - boxes[0].3).abs()];
+            assert!(d.iter().all(|d| *d <= 2.0), "slide {n}: the ink moved with the scale: {boxes:?}");
+            assert!(b.0 >= 0.0 && b.1 >= 0.0 && b.2 <= w_pt && b.3 <= h_pt, "slide {n}: ink outside the slide: {b:?}");
+        }
     }
 }
